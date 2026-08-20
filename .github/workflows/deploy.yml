@@ -27,6 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # enablement: true turns Pages on for the repo on first run, so the site does
+      # not need anyone to click through repository settings to come up.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       # The index is a build artifact, never committed. That keeps the repo history
       # made of nothing but agent-written run files, and removes any possibility of a
       # bot-commit loop. If the index is ever wrong, re-run this workflow.
