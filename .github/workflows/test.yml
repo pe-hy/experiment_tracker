@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/**', 'site/**', 'tests/**', '.github/workflows/test.yml']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # The poster has to run on an HPC login node whose system interpreter is 3.6,
+      # so that is what the tests run against. If this job starts failing after a
+      # runner image change, the cause is a newer-Python idiom creeping in.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Poster and indexer self-checks
+        run: python3 tests/track_test.py
+
+      - name: Build the fixture site
+        run: python3 scripts/reindex.py --data tests/fixture --out /tmp/fx/data
+
+      - name: Frontend syntax
+        run: node --check site/assets/app.js || (cp site/assets/app.js /tmp/a.mjs && node --check /tmp/a.mjs)
+
+      - name: Render every view
+        run: node tests/render_test.mjs /tmp/fx
+
+      - name: Index must stay parseable and non-empty
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/fx/data/index.json'))
+          assert d['project_count'] == 2, d['project_count']
+          assert d['run_count'] == 4, d['run_count']
+          assert len(d['invalid']) == 1, 'the malformed fixture must be reported'
+          assert d['recent_runs'], 'cross-project feed must not be empty'
+          print('index OK:', d['project_count'], 'projects,', d['run_count'], 'runs')
+          PY

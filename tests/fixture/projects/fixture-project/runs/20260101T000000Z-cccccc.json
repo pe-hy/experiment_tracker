@@ -1,0 +1,8 @@
+{
+ "schema_version": 1,
+ "project": "fixture-project", "variant": "baseline",
+ "variant_description": "The unmodified 12-layer model, kept as the reference point for every other variant.",
+ "run_name": "baseline-1", "status": "completed",
+ "started_at": "2025-12-01T00:00:00Z", "finished_at": "2025-12-01T01:00:00Z",
+ "metrics": {"val_accuracy": 0.80, "val_loss": 0.45}
+}

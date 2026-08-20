@@ -5,6 +5,7 @@
 // textContent (via the `h` helper) and never through innerHTML.
 
 const DATA = './data';
+const REPO = 'https://github.com/pe-hy/experiment_tracker';
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -151,13 +152,22 @@ async function viewProjects(app) {
   setBuiltAt(index.built_at);
   clear(app);
 
+  const bits = [`${index.project_count} project${index.project_count === 1 ? '' : 's'}`,
+                `${index.run_count} run${index.run_count === 1 ? '' : 's'}`];
+  if (index.gpu_hours) bits.push(`${fmtNumber(index.gpu_hours)} accelerator-hours`);
+
   app.append(h('div', { class: 'page-head' },
     h('h1', {}, 'Projects'),
     h('p', { class: 'subtitle' },
-      index.project_count === 0
-        ? 'Nothing tracked yet.'
-        : `${index.project_count} project${index.project_count === 1 ? '' : 's'}, ` +
-          `${index.run_count} run${index.run_count === 1 ? '' : 's'} recorded.`)));
+      index.project_count === 0 ? 'Nothing tracked yet.' : bits.join(' · ') + '.')));
+
+  // A file that failed to parse would otherwise just vanish from the site, which is
+  // the one failure mode you must never hide in a system of record.
+  if (index.invalid && index.invalid.length) {
+    app.append(h('div', { class: 'banner-error' },
+      `${index.invalid.length} file(s) could not be read and are missing from this view: `,
+      index.invalid.map(i => i.path).join(', ')));
+  }
 
   if (!index.projects.length) {
     app.append(empty('No experiments tracked yet',
@@ -190,6 +200,41 @@ async function viewProjects(app) {
     search)));
   app.append(grid);
   render();
+
+  if (index.recent_runs && index.recent_runs.length) {
+    app.append(recentPanel(index.recent_runs));
+  }
+}
+
+/** Latest runs across every project — the "what has been happening" view. */
+function recentPanel(runs) {
+  const table = h('table', { class: 'tbl' },
+    h('thead', {}, h('tr', {},
+      h('th', {}, 'When'), h('th', {}, 'Project'), h('th', {}, 'Variant'),
+      h('th', {}, 'Run'), h('th', {}, 'Status'), h('th', { class: 'num' }, 'Result'))),
+    h('tbody', {},
+      runs.map(r => {
+        const key = r.primary_metric && (r.metrics || {})[r.primary_metric] !== undefined
+          ? r.primary_metric
+          : Object.keys(r.metrics || {})[0];
+        const value = key ? (r.metrics || {})[key] : undefined;
+        return h('tr', {},
+          h('td', { class: 'faint nowrap', title: fmtDate(r.when) }, fmtAgo(r.when) || '—'),
+          h('td', {}, h('a', { href: `#/p/${encodeURIComponent(r.project)}` },
+            r.project_name || r.project)),
+          h('td', { class: 'faint' }, r.variant || '—'),
+          h('td', {}, h('a', {
+            href: `#/p/${encodeURIComponent(r.project)}/r/${encodeURIComponent(r.run_id)}`
+          }, r.run_name || r.run_id)),
+          h('td', {}, statusBadge(r.status)),
+          h('td', { class: 'num' }, typeof value === 'number'
+            ? `${key} ${fmtNumber(value)}` : '—'));
+      })));
+
+  return h('details', { class: 'panel mt-4', open: '' },
+    h('summary', {}, 'Recent activity across all projects',
+      h('span', { class: 'badge badge-info' }, String(runs.length))),
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)));
 }
 
 function projectCard(p) {
@@ -241,19 +286,28 @@ async function viewProject(app, slug) {
     return;
   }
 
-  project.variants.forEach(v => app.append(variantPanel(project, v)));
+  // Only the most recently active variant is expanded: ten open variants with thirty
+  // runs each is a wall, not a view.
+  project.variants.forEach((v, i) => app.append(variantPanel(project, v, i === 0)));
 }
 
-function variantPanel(project, variant) {
-  const panel = h('details', { class: 'panel', open: '' });
+function variantPanel(project, variant, open) {
+  const panel = h('details', { class: 'panel', open: open ? '' : null });
   panel.append(h('summary', {},
     h('span', {}, variant.variant_name || variant.variant),
     h('span', { class: 'badge badge-info' }, `${variant.run_count} run${variant.run_count === 1 ? '' : 's'}`),
+    variant.conclusion ? h('span', { class: 'badge badge-ok', title: variant.conclusion }, 'concluded') : null,
+    variant.status === 'abandoned' ? h('span', { class: 'badge badge-info' }, 'abandoned') : null,
     h('span', { class: 'topbar-spacer' }),
     variant.last_activity && h('span', { class: 'xsmall faint nowrap' }, fmtAgo(variant.last_activity))));
 
   const body = h('div', { class: 'panel-body' });
   body.append(description(variant.description, 'variant'));
+  if (variant.conclusion) {
+    body.append(h('div', { class: 'mt-4' },
+      h('div', { class: 'xsmall muted', style: 'text-transform:uppercase;letter-spacing:.04em' }, 'Conclusion'),
+      description(variant.conclusion, 'conclusion')));
+  }
   panel.append(body);
   panel.append(runTable(project, variant));
   return panel;
@@ -279,11 +333,17 @@ function runTable(project, variant) {
   const cols = metricColumns(runs);
   // Highlight the best value per metric so a leaderboard read is instant. Direction is
   // guessed from the name — losses and errors go down, everything else goes up.
+  // Direction comes from the project's declared metric_goals when available; the
+  // name heuristic is only a fallback, and it is wrong for things like "regret".
+  const goals = project.metric_goals || {};
   const best = {};
   cols.forEach(k => {
     const vals = runs.map(r => (r.metrics || {})[k]).filter(v => typeof v === 'number');
     if (!vals.length) return;
-    best[k] = /loss|err|perplexity|ppl|nll|mse|mae|wer|cer/i.test(k) ? Math.min(...vals) : Math.max(...vals);
+    const lowerIsBetter = goals[k]
+      ? goals[k] === 'min'
+      : /loss|err|perplexity|ppl|nll|mse|mae|wer|cer|regret/i.test(k);
+    best[k] = lowerIsBetter ? Math.min(...vals) : Math.max(...vals);
   });
 
   const headers = [
@@ -350,7 +410,12 @@ function runTable(project, variant) {
       cols.forEach(k => {
         const v = (r.metrics || {})[k];
         const isBest = typeof v === 'number' && best[k] === v && runs.length > 1;
-        tr.append(h('td', { class: 'num' + (isBest ? ' best' : '') }, typeof v === 'number' ? fmtNumber(v) : '—'));
+        // Colour alone must not carry the meaning, so the best value also gets a
+        // marker and a title.
+        tr.append(h('td', {
+          class: 'num' + (isBest ? ' best' : ''),
+          title: isBest ? `best ${k} in this variant` : null,
+        }, typeof v === 'number' ? fmtNumber(v) : '—', isBest ? ' ★' : ''));
       });
       tr.append(h('td', { class: 'num' }, fmtDuration(r.duration_seconds)));
       const when = r.finished_at || r.started_at;
@@ -360,7 +425,65 @@ function runTable(project, variant) {
   };
 
   renderHead(); renderBody();
-  return h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table));
+
+  const rowsFor = () => {
+    const head = ['run', 'status', ...cols, 'duration_s', 'when'];
+    const body = runs.map(r => [
+      r.run_name || r.run_id, r.status || '',
+      ...cols.map(k => { const v = (r.metrics || {})[k]; return typeof v === 'number' ? v : ''; }),
+      typeof r.duration_seconds === 'number' ? Math.round(r.duration_seconds) : '',
+      r.finished_at || r.started_at || '',
+    ]);
+    return [head, ...body];
+  };
+
+  const toolbar = h('div', { class: 'toolbar', style: 'margin:12px 16px 0' },
+    copyButton('Copy CSV', () => rowsFor()
+      .map(row => row.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c)).join(','))
+      .join('\n')),
+    copyButton('Copy LaTeX', () => {
+      const rows = rowsFor();
+      const esc = s => String(s).replace(/([&%$#_{}])/g, '\\$1');
+      return [
+        `\\begin{tabular}{l${'r'.repeat(rows[0].length - 1)}}`, '\\toprule',
+        rows[0].map(esc).join(' & ') + ' \\\\', '\\midrule',
+        ...rows.slice(1).map(r => r.map(esc).join(' & ') + ' \\\\'),
+        '\\bottomrule', '\\end{tabular}',
+      ].join('\n');
+    }));
+
+  return h('div', {}, toolbar,
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)));
+}
+
+/** Copy-to-clipboard with a real fallback: the async API needs a secure context
+ *  and, in some browsers, a recent user gesture — neither is guaranteed. */
+function copyButton(label, produce) {
+  const btn = h('button', { class: 'btn', type: 'button' }, label);
+  btn.addEventListener('click', async () => {
+    const text = produce();
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch (e) { /* fall through to the manual path */ }
+    if (ok) {
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = label; }, 1200);
+    } else {
+      // Show it in a selectable box rather than failing silently.
+      const box = h('textarea', { class: 'input', rows: '10',
+        style: 'height:auto;font-family:var(--font-mono);width:100%' });
+      box.value = text;
+      const holder = h('div', { class: 'mt-4' },
+        h('p', { class: 'xsmall faint' }, 'Copy is unavailable here — select and copy manually:'), box);
+      btn.parentNode.appendChild(holder);
+      box.focus(); box.select();
+    }
+  });
+  return btn;
 }
 
 async function viewRun(app, slug, runId) {
@@ -408,7 +531,7 @@ async function viewRun(app, slug, runId) {
     if ((text || '').trim()) {
       app.append(h('div', { class: 'panel' },
         h('div', { class: 'panel-head' }, h('h3', {}, title)),
-        h('div', { class: 'panel-body' }, description(text, title.toLowerCase())));
+        h('div', { class: 'panel-body' }, description(text, title.toLowerCase()))));
     }
   }
 
@@ -427,6 +550,23 @@ async function viewRun(app, slug, runId) {
 
   const code = run.code || {};
   if (Object.keys(code).length) {
+    // State plainly when the recorded commit cannot be resolved by a reader. A SHA
+    // that exists on one machine looks authoritative and is not.
+    if (code.no_remote) {
+      app.append(h('div', { class: 'banner-error' },
+        'This project had no git remote, so the commit below exists only on the machine ' +
+        'that ran it and cannot be fetched by anyone else.'));
+    } else if (code.commit_pushed === false) {
+      app.append(h('div', { class: 'banner-error' },
+        'This commit was never pushed. The SHA is recorded, but nobody else can resolve it.'));
+    } else if (code.visibility === 'private' || code.visibility === 'private_or_missing') {
+      app.append(h('div', { class: 'panel' }, h('div', { class: 'panel-body small muted' },
+        'The source repository is private, so the links below will 404 for anyone without access. ',
+        h('br'),
+        'Reproduce with: ',
+        h('code', {}, `git clone ${code.remote_url || '<repo>'} && git checkout ${code.commit || ''}`))));
+    }
+
     const rows = [
       ['Commit', code.commit ? commitLink(code) : null],
       ['Branch', code.branch],
@@ -438,6 +578,7 @@ async function viewRun(app, slug, runId) {
     ];
     app.append(detailsPanel('Code', rows));
     if (code.patch_file) app.append(await patchPanel(slug, code));
+    (code.snapshots || []).forEach(file => app.append(snapshotPanel(file)));
   }
 
   if (run.env && Object.keys(run.env).length) {
@@ -454,6 +595,24 @@ async function viewRun(app, slug, runId) {
   app.append(h('details', { class: 'panel' },
     h('summary', {}, 'Raw JSON'),
     h('pre', { class: 'code' }, JSON.stringify(run, null, 2))));
+
+  // Runs are immutable by design, but people still need to fix a typo or remove a
+  // smoke test. GitHub's own web editor does both, and editing there retriggers the
+  // rebuild — so two links turn "impossible" into a working workflow.
+  const file = `data/projects/${slug}/runs/${run.run_id}.json`;
+  app.append(h('div', { class: 'row wrapf mt-4', style: 'gap:8px' },
+    h('a', { class: 'btn', href: `${REPO}/edit/main/${file}`, target: '_blank', rel: 'noopener' }, 'Edit on GitHub'),
+    h('a', { class: 'btn', href: `${REPO}/delete/main/${file}`, target: '_blank', rel: 'noopener' }, 'Delete run'),
+    h('a', { class: 'btn btn-ghost', href: `${REPO}/blob/main/${file}`, target: '_blank', rel: 'noopener' }, 'View source'),
+    h('span', { class: 'xsmall faint' }, 'edits rebuild the site automatically')));
+}
+
+function snapshotPanel(file) {
+  return h('details', { class: 'panel' },
+    h('summary', {}, file.path,
+      h('span', { class: 'badge badge-info' }, `${file.bytes} B`),
+      h('span', { class: 'badge badge-accent' }, 'snapshot')),
+    h('div', { class: 'panel-body flush' }, h('pre', { class: 'code' }, file.content)));
 }
 
 function detailsPanel(title, rows) {
@@ -493,13 +652,25 @@ function commitLink(code) {
 }
 
 async function patchPanel(slug, code) {
+  const tooLarge = code.patch_kind === 'too_large' || code.patch_truncated;
   const panel = h('details', { class: 'panel' });
   panel.append(h('summary', {},
     'Uncommitted changes',
     h('span', { class: 'badge badge-warn' },
       code.patch_lines ? `${code.patch_lines} lines` : 'diff'),
-    code.patch_truncated ? h('span', { class: 'badge badge-info' }, 'truncated') : null));
-  const body = h('div', { class: 'panel-body flush' }, h('div', { class: 'panel-body faint small' }, 'Loading diff…'));
+    typeof code.patch_files_changed === 'number'
+      ? h('span', { class: 'badge badge-info' }, `${code.patch_files_changed} files`) : null,
+    tooLarge ? h('span', { class: 'badge badge-bad' }, 'TRUNCATED') : null));
+  const body = h('div', { class: 'panel-body flush' });
+  if (tooLarge) {
+    // A truncated patch will not apply. Saying so loudly is the difference between
+    // "not reproducible" and "silently wrong".
+    body.append(h('div', { class: 'panel-body' }, h('div', { class: 'banner-error' },
+      'This diff exceeded the size cap and was cut off. It will NOT apply cleanly — ' +
+      'this run cannot be reconstructed from the commit and patch alone.')));
+  }
+  const slot = h('div', { class: 'panel-body faint small' }, 'Loading diff…');
+  body.append(slot);
   panel.append(body);
 
   // Fetch lazily: patches are the biggest thing in a run and most visits never open one.
@@ -509,11 +680,9 @@ async function patchPanel(slug, code) {
     loaded = true;
     try {
       const text = await getText(`${DATA}/projects/${encodeURIComponent(slug)}/runs/${code.patch_file}`);
-      clear(body);
-      body.append(renderDiff(text));
+      slot.replaceWith(renderDiff(text));
     } catch (err) {
-      clear(body);
-      body.append(h('div', { class: 'panel-body' }, errorBanner(err)));
+      slot.replaceWith(h('div', { class: 'panel-body' }, errorBanner(err)));
     }
   });
   return panel;
@@ -640,7 +809,9 @@ function setBuiltAt(builtAt) {
   el.title = `Index built ${fmtDate(builtAt)}. A newly posted run appears within a few minutes.`;
 }
 
-async function route() {
+// Exported so the test harness can drive each view directly instead of relying on
+// module re-evaluation. Browsers ignore the export.
+export async function route() {
   const app = $('#app');
   const hash = location.hash.replace(/^#\/?/, '');
   const parts = hash.split('/').filter(Boolean).map(decodeURIComponent);

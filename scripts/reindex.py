@@ -28,8 +28,13 @@ SCHEMA_VERSION = 1
 _SUMMARY_KEYS = (
     "run_id", "run_name", "status", "author", "tags",
     "started_at", "finished_at", "duration_seconds",
-    "primary_metric", "metrics", "notes",
+    "primary_metric", "metrics", "notes", "seed", "group",
 )
+
+
+# Files that could not be parsed. Surfaced in the index so a typo shows up as a
+# banner on the site rather than as a run that quietly ceased to exist.
+INVALID = []
 
 
 def log(msg):
@@ -47,8 +52,10 @@ def read_json(path):
             return json.load(fh)
     except ValueError as exc:
         log("SKIP malformed JSON: %s (%s)" % (path, exc))
+        INVALID.append({"path": path, "error": "malformed JSON: %s" % exc})
     except (IOError, OSError) as exc:
         log("SKIP unreadable: %s (%s)" % (path, exc))
+        INVALID.append({"path": path, "error": "unreadable: %s" % exc})
     return None
 
 
@@ -101,7 +108,8 @@ def summarise(run):
     if isinstance(code, dict):
         slim = {}
         for key in ("commit", "commit_short", "branch", "dirty", "remote",
-                    "remote_url", "patch_file", "patch_lines", "patch_truncated"):
+                    "remote_url", "patch_file", "patch_lines", "patch_truncated",
+                    "patch_kind", "visibility", "commit_pushed"):
             if code.get(key) is not None:
                 slim[key] = code[key]
         if slim:
@@ -128,6 +136,8 @@ def collect_variants(runs):
                 "variant_name": run.get("variant_name") or slug,
                 "description": "",
                 "description_from": None,
+                "conclusion": "",
+                "status": None,
                 "runs": [],
             }
             order.append(slug)
@@ -136,6 +146,13 @@ def collect_variants(runs):
         if desc and not entry["description"]:
             entry["description"] = desc
             entry["description_from"] = run.get("run_id")
+        # The verdict on the idea, as opposed to a single run's outcome. This is the
+        # field that makes the tracker worth reading a year later.
+        conclusion = (run.get("variant_conclusion") or "").strip()
+        if conclusion and not entry["conclusion"]:
+            entry["conclusion"] = conclusion
+        if not entry["status"] and run.get("variant_status"):
+            entry["status"] = run["variant_status"]
         entry["runs"].append(summarise(run))
 
     variants = []
@@ -169,14 +186,20 @@ def build_project(project_dir, slug):
             data = read_json(os.path.join(runs_dir, name))
             if data is None:
                 continue
-            data.setdefault("run_id", name[:-5])
+            # The filename is authoritative — it is what the URL will point at.
+            if data.get("run_id") and data["run_id"] != name[:-5]:
+                log("NOTE: %s declares run_id %r; using the filename instead"
+                    % (name, data["run_id"]))
+            data["run_id"] = name[:-5]
             runs.append(data)
 
     runs.sort(key=sort_key_desc)
 
     # Optional hand-written project metadata, for a title and blurb nicer than
-    # anything an agent would invent. Never required.
-    meta = read_json(os.path.join(project_dir, "project.meta.json")) or {}
+    # anything an agent would invent. Never required — so its absence must not be
+    # reported as an unreadable file.
+    meta_path = os.path.join(project_dir, "project.meta.json")
+    meta = (read_json(meta_path) or {}) if os.path.isfile(meta_path) else {}
 
     name = meta.get("name")
     description = (meta.get("description") or "").strip()
@@ -191,11 +214,25 @@ def build_project(project_dir, slug):
                 break
 
     variants = collect_variants(runs)
+
+    # Explicit metric directions beat the name heuristic, and the newest run that
+    # states them wins — same upsert rule as the descriptions.
+    goals = dict(meta.get("metric_goals") or {})
+    for run in reversed(runs):
+        stated = run.get("metric_goals")
+        if isinstance(stated, dict):
+            for key, value in stated.items():
+                if value in ("max", "min"):
+                    goals[key] = value
+
     project = {
         "slug": slug,
         "name": name or slug,
         "description": description,
         "repo": meta.get("repo") or _first(runs, lambda r: (r.get("code") or {}).get("remote_url")),
+        "primary_metric": meta.get("primary_metric") or _first(runs, lambda r: r.get("primary_metric")),
+        "metric_goals": goals,
+        "status": meta.get("status") or _first(runs, lambda r: r.get("project_status")),
         "variants": variants,
         "run_count": len(runs),
         "variant_count": len(variants),
@@ -203,8 +240,22 @@ def build_project(project_dir, slug):
         "statuses": _tally(runs, "status"),
         "tags": _all_tags(runs),
         "metric_keys": _metric_keys(runs),
+        # Summed over every run including failures — the compute number nobody can
+        # reconstruct after the fact.
+        "gpu_hours": _sum_gpu_hours(runs),
     }
     return project, runs
+
+
+def _sum_gpu_hours(runs):
+    total = 0.0
+    seen = False
+    for run in runs:
+        value = (run.get("env") or {}).get("gpu_hours")
+        if is_number(value) and value >= 0:
+            total += value
+            seen = True
+    return round(total, 2) if seen else None
 
 
 def _first(runs, getter):
@@ -257,6 +308,7 @@ def main():
         os.makedirs(out_projects)
 
     summaries = []
+    all_projects = []
     total_runs = 0
 
     slugs = []
@@ -267,6 +319,7 @@ def main():
     for slug in slugs:
         project_dir = os.path.join(projects_root, slug)
         project, runs = build_project(project_dir, slug)
+        all_projects.append((slug, project, runs))
         total_runs += len(runs)
 
         dest = os.path.join(out_projects, slug)
@@ -295,6 +348,10 @@ def main():
             "run_count": project["run_count"],
             "variant_count": project["variant_count"],
             "last_activity": project["last_activity"],
+            "primary_metric": project["primary_metric"],
+            "metric_goals": project["metric_goals"],
+            "status": project["status"],
+            "gpu_hours": project["gpu_hours"],
             "statuses": project["statuses"],
             "tags": project["tags"],
             "metric_keys": project["metric_keys"],
@@ -302,24 +359,53 @@ def main():
             # instead of being a wall of identical tiles.
             "variant_preview": [
                 {"variant": v["variant"], "name": v["variant_name"],
-                 "description": v["description"], "run_count": v["run_count"]}
+                 "description": v["description"], "conclusion": v["conclusion"],
+                 "run_count": v["run_count"]}
                 for v in project["variants"][:3]
             ],
         })
 
     summaries.sort(key=lambda p: (p["last_activity"] or ""), reverse=True)
 
+    # A cross-project feed. The stated problem is losing track *across* projects, and
+    # without this the landing page could only be built by fetching every project
+    # document, so it belongs in the one file the page already loads.
+    recent = []
+    for project_slug, project, runs in all_projects:
+        for run in runs:
+            recent.append({
+                "project": project_slug,
+                "project_name": project["name"],
+                "variant": run.get("variant"),
+                "run_id": run.get("run_id"),
+                "run_name": run.get("run_name"),
+                "status": run.get("status"),
+                "author": run.get("author"),
+                "when": run.get("finished_at") or run.get("started_at"),
+                "primary_metric": run.get("primary_metric") or project.get("primary_metric"),
+                "metrics": dict((k, v) for k, v in (run.get("metrics") or {}).items()
+                                if is_number(v)),
+            })
+    recent.sort(key=lambda r: (r["when"] or ""), reverse=True)
+    recent = recent[:60]
+
+    total_gpu_hours = sum(p["gpu_hours"] for p in summaries if p.get("gpu_hours"))
     index = {
         "schema_version": SCHEMA_VERSION,
         "built_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "project_count": len(summaries),
         "run_count": total_runs,
+        "gpu_hours": round(total_gpu_hours, 2) if total_gpu_hours else None,
+        "invalid": INVALID,
+        "recent_runs": recent,
         "projects": summaries,
     }
     with open(os.path.join(args.out, "index.json"), "w") as fh:
         json.dump(index, fh, indent=1, sort_keys=True)
 
     log("%d project(s), %d run(s) -> %s" % (len(summaries), total_runs, args.out))
+    if INVALID:
+        log("WARNING: %d unreadable file(s); they are listed in index.json" % len(INVALID))
     return 0
 
 

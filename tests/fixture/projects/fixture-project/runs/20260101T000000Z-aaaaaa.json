@@ -1,0 +1,28 @@
+{
+ "schema_version": 1,
+ "project": "fixture-project", "project_name": "Fixture Project",
+ "project_description": "A long-running fixture project used by the test suite.",
+ "variant": "deeper-encoder", "variant_name": "deeper encoder",
+ "variant_description": "Increase encoder depth from 12 to 16 layers to test whether capacity is the bottleneck.",
+ "variant_conclusion": "Did not help beyond 14 layers; the data was the limit, not the model.",
+ "run_name": "fixture-run-a", "status": "completed", "author": "tester",
+ "started_at": "2026-01-01T00:00:00Z", "finished_at": "2026-01-01T02:00:00Z",
+ "duration_seconds": 7200,
+ "metrics": {"val_accuracy": 0.8241, "val_loss": 0.31},
+ "primary_metric": "val_accuracy",
+ "metric_goals": {"val_accuracy": "max", "val_loss": "min"},
+ "hypothesis": "A 12-layer encoder underfits; more depth helps if capacity is the limit.",
+ "conclusion": "DEMO fixture conclusion.",
+ "config": {"batch_size": 32, "lr": 0.0003},
+ "curves": {"train_loss": [[0, 2.3], [100, 1.1], [200, 0.6]]},
+ "env": {"n_devices": 4, "gpu_hours": 8.0},
+ "code": {
+   "available": true, "commit": "abc123def4567890abc123def4567890abc123de",
+   "commit_short": "abc123def4", "branch": "main", "dirty": true,
+   "commit_pushed": false, "forge": "github.com",
+   "patch_file": "20260101T000000Z-aaaaaa.patch", "patch_kind": "too_large",
+   "patch_truncated": true, "patch_lines": 9000, "patch_files_changed": 12,
+   "snapshots": [{"path": "train.py", "bytes": 42, "sha256": "x",
+                  "content": "LEARNING_RATE = 3e-4\nLAYERS = 16\n"}]
+ }
+}

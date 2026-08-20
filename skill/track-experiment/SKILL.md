@@ -5,80 +5,97 @@ description: Record an experiment run (training, finetune, eval, ablation) to th
 
 # Track an experiment
 
-Records one run to the shared tracker so that results, the idea behind them, and the exact
-code that produced them stay findable months later.
+Records one run so that the result, the idea behind it, and the exact code that produced it
+are still findable months from now.
 
 The model is **project → variant → run**:
 
-- **project** — the research effort, usually one repo or directory (`DecisionChains`, `chunks_labeling_v3`).
-- **variant** — the *idea* being tried inside that project (`grpo-step-level-rewards`,
-  `frozen-encoder`, `baseline`). A new architecture, loss, or data recipe is a new variant.
+- **project** — the research effort, usually one repo or directory.
+- **variant** — the *idea* being tried inside it (`grpo-step-level-rewards`, `frozen-encoder`,
+  `baseline`). A new architecture, loss, or data recipe is a new variant.
 - **run** — one execution producing metrics. Many runs per variant.
 
-Projects and variants are created implicitly the first time you name them. There is nothing
-to register in advance.
+## Step 1 — Look before you name. Do not skip this.
 
-## Before you write anything
+```bash
+python3 ~/.claude/skills/track-experiment/scripts/track.py --list
+```
 
-**Everything you post is public and permanent.** The tracker repo is public, so the payload
-is world-readable and search-indexable. Never include API keys, tokens, passwords, dataset
-contents, personal data, or anything under embargo. If a config dict holds a credential,
-drop that key before posting.
+**This is the most important step.** You have no memory of previous sessions. If you invent
+`grpo-step-rewards` where an earlier run used `grpo-step-level-rewards`, the history of one
+idea is split across two names and neither view joins them back together. Six months of that
+makes the tracker useless.
 
-## Steps
+Read the output and **copy the quoted slugs exactly**. Use `--list <project>` to see every
+variant in one project.
 
-### 1. Gather the facts — ask rather than guess
+- Same idea as an existing variant → **reuse that variant slug**, even if you would have
+  worded it differently.
+- Genuinely new idea → new variant slug.
+- Not really testing an idea (a baseline, a smoke check) → use `baseline`.
 
-Read the training/eval config, logs, and output files in the project to fill in metrics and
-config. Do **not** invent numbers: every metric must come from a file or from the user.
+The script refuses names that look like a re-spelling of an existing one. If it refuses,
+it is almost always right — use the name it suggests. `--new-name` overrides it, and you
+should need that roughly never.
 
-If you cannot determine the metrics, **ask the user** instead of posting a run without them.
+## Step 2 — Gather the facts. Never invent them.
 
-### 2. Write `variant_description` properly
+Read the config, logs and output files to fill in metrics and hyperparameters. Every number
+must come from a file or from the user. **If you cannot find the metrics, ask the user —
+do not post a run with guessed numbers.** A tracker with invented values is worse than none,
+because it will be trusted.
 
-This is the field the whole tracker exists for, and the one only you can supply. It must be a
-real sentence explaining **what idea this variant tests and why**, written so that someone —
-including the user in six months — understands the point without reading the code.
+## Step 3 — Write `variant_description` properly
+
+This is the field the tracker exists for, and the only one nothing else can supply. A real
+sentence explaining **what this variant changes and why you expected it to help**, written
+for someone who has forgotten everything about this project.
 
 - Good: *"Replace the frozen sentence encoder with a trainable LoRA adapter, to test whether
   the encoder is the bottleneck on long chunks."*
-- Useless: *"lora run"*, *"v2"*, *"experiment 3"*.
+- Rejected: `"lora run"`, `"v2"`, `"experiment 3"`.
 
-The posting script rejects descriptions under 15 characters.
+Under 25 characters is refused outright.
 
-If a variant already exists and its description is now inaccurate, just write a better one —
-the newest description posted wins, so descriptions improve over time.
+If the variant already exists, **reuse its existing description verbatim** — copy it from
+`--list`. Only write a new one if you are deliberately improving it, because the newest
+description posted becomes the one everyone sees.
 
-Also fill `hypothesis` (what you expected) and, once results are in, `conclusion` (what
-actually happened, including "this did not work" — negative results are the main reason this
-tracker exists).
+Also fill:
+- `hypothesis` — what you expected, before seeing results.
+- `conclusion` — what this particular run showed.
+- `variant_conclusion` — the verdict on the *idea* once you know it. Including "this did not
+  work". Negative results are the main reason this tracker is worth keeping.
 
-### 3. Build the payload
+## Step 4 — Build the payload
 
-Write JSON to a temp file. Required: `project`, `variant`, `variant_description`.
-Everything else is optional but valuable.
+Required: `project`, `variant`, `variant_description`. Everything else is optional.
 
 ```json
 {
-  "project": "DecisionChains",
+  "project": "decisionchains",
   "project_description": "GRPO and naive finetuning on decision-chain reasoning tasks.",
 
   "variant": "grpo-step-level-rewards",
   "variant_description": "Reward each reasoning step individually instead of only the final answer, to test whether denser credit assignment stabilises GRPO training.",
+  "variant_conclusion": "Held up across three seeds; adopted as the default.",
 
   "run_name": "grpo-step-lr2e6-seed1",
   "status": "completed",
   "started_at": "2026-08-19T09:00:00Z",
   "finished_at": "2026-08-19T14:32:00Z",
 
-  "metrics": { "exact_match": 0.6412, "step_accuracy": 0.8123, "train_loss": 0.2841 },
+  "metrics": { "exact_match": 0.6412, "step_accuracy": 0.8123 },
   "primary_metric": "exact_match",
+  "metric_goals": { "exact_match": "max", "step_accuracy": "max" },
 
   "hypothesis": "Dense per-step rewards reduce variance versus terminal-only reward.",
   "conclusion": "Held up: seed variance dropped and exact match improved 4.1 points.",
-  "notes": "Run 3 of 3. Seeds 1/2/3 gave 0.641 / 0.638 / 0.644.",
+  "notes": "Run 3 of 3.",
+  "seed": 1,
+  "group": "seed-sweep-lr2e6",
 
-  "config": { "lr": 2e-6, "batch_size": 32, "model": "Qwen2.5-7B", "steps": 4000 },
+  "config": { "lr": 2e-6, "batch_size": 32, "model": "Qwen2.5-7B" },
   "tags": ["grpo", "ablation"],
   "curves": { "train_loss": [[0, 1.82], [500, 0.91], [1000, 0.54]] },
   "artifacts": [{ "name": "checkpoint", "path": "/scratch/.../checkpoint-4000" }]
@@ -87,46 +104,76 @@ Everything else is optional but valuable.
 
 Field notes:
 
-- `status` — `completed`, `failed`, `running`, or `cancelled`. **Record failed runs too.**
-  A variant that did not work is a result, and it stops the idea being retried by accident.
-- `metrics` — flat, numbers only. Use the same metric names across runs in a project or the
-  comparison table cannot line them up.
-- `primary_metric` — which key is *the* number. Drives the default table sort.
-- `config` — hyperparameters. Nested objects are fine; they are flattened for display.
-- `curves` — optional `[[step, value], …]` per metric. Downsample to ≤500 points.
-- `code` / `env` — **do not fill these in.** The script collects git and Slurm provenance
-  itself, and anything you write by hand will override what it detected.
+- `status` — `completed`, `failed`, or `cancelled`. **Record failed runs too**; a dead end is
+  a result, and it stops the idea being retried by accident. Do not use `running`: runs are
+  immutable, so it would stay "running" forever.
+- `metrics` — flat, **numbers only**. `0.6412`, never `"64.12%"`. A non-numeric value is
+  rejected. Use the same metric names across runs or the comparison table cannot line them up.
+- `primary_metric` / `metric_goals` — which number matters and whether higher or lower is
+  better. Without `metric_goals` the site guesses from the name and gets things like
+  `regret` wrong.
+- `seed` / `group` — set both when running the same config across seeds.
+- `curves` — optional `[[step, value], …]`. Downsample to ≤500 points.
+- `code` / `env` — **do not fill these in.** The script collects them, and anything you write
+  by hand overrides what it detected.
 
-### 4. Post it
-
-Run from **inside the project being tracked**, so git provenance is picked up:
+## Step 5 — Dry run, and show the user
 
 ```bash
-python3 ~/.claude/skills/track-experiment/scripts/track.py /tmp/run.json --repo-path .
+python3 ~/.claude/skills/track-experiment/scripts/track.py /tmp/run.json --repo-path . --dry-run
 ```
 
-Add `--dry-run` first to show the user exactly what will be published. Do that whenever the
-run is the first for a project, or whenever you are unsure about a field.
+Run from **inside the project being tracked** so git provenance is picked up.
 
-The script automatically records: commit SHA, branch, detached-HEAD state, `git describe`,
-remote URL (with any embedded credentials stripped), whether the working tree was dirty,
-whether the commit was ever pushed, names of untracked files, a patch of uncommitted changes,
-plus Slurm job details and container info when present.
+**Show the user the dry-run output and get their go-ahead before posting.** A post is a
+commit to a public repository and cannot be truly undone.
 
-### 5. Report back
+If the project has no git remote, or the commit was never pushed, the script says so. In that
+case add the files that define the run:
 
-Tell the user the run ID and the page URL the script prints. Mention that the site rebuilds
-automatically and the run appears within a few minutes.
+```bash
+--snapshot train.py --snapshot configs/se3.yaml --snapshot sbatch/train.sh
+```
 
-## Handling problems
+These are stored verbatim, so the run stays reproducible even when the SHA resolves nowhere.
+
+For a Slurm job, pass the job id and the real state (including `TIMEOUT` and `OUT_OF_MEMORY`)
+is looked up for you:
+
+```bash
+--slurm-job-id 21406869
+```
+
+## Step 6 — Post
+
+Drop `--dry-run`. Report the run ID and page URL the script prints, and mention the site
+rebuilds in a few minutes.
+
+## Never publish secrets
+
+Everything posted goes to a **public** repository, permanently. Deleting a file afterwards
+does **not** remove it from git history.
+
+The script scans the payload and the diff for credentials and refuses to post if it finds
+any. If it refuses: remove the value, and tell the user to rotate it if it was real. Do not
+reach for `--i-have-checked` unless you have confirmed it is a false positive.
+
+Before building the payload, drop any config key holding a token, password or API key.
+
+## When it goes wrong
 
 - **`Missing required field(s)`** — supply `variant_description`; it is not optional.
-- **`403 … lacks 'Contents: Read and write'`** — the token needs fixing; tell the user rather
-  than retrying.
-- **`No token`** — the token belongs at `~/.config/exptracker/token`, `chmod 600`, or in
-  `$TRACKER_TOKEN`. Never commit it, and never print it.
+- **`looks like another spelling`** — you invented a new name for an existing thing. Use the
+  suggested one.
+- **`not numbers`** — a metric is a string. Convert it.
+- **`403 … lacks 'Contents: Read and write'`** — the token needs fixing. Tell the user; do
+  not retry.
+- **`No token found`** — it belongs at `~/.config/exptracker/token`, `chmod 600`. Never print it.
 - **Code ran from a copied tree with no `.git`** — set `TRACKER_GIT_COMMIT`,
-  `TRACKER_GIT_BRANCH`, `TRACKER_GIT_REMOTE` and the script will use those instead.
+  `TRACKER_GIT_BRANCH`, `TRACKER_GIT_REMOTE`, or use `--snapshot`.
+
+Re-running after a failure is safe: the run id is derived from the run's content, so a retry
+lands on the same file rather than creating a duplicate.
 
 ## When *not* to use this
 

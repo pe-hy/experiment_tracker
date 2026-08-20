@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "project": "second-project", "project_name": "Second Project",
+ "project_description": "Exists so the cross-project feed has something to cross.",
+ "variant": "baseline",
+ "variant_description": "Reference configuration for the second project, unchanged from the paper.",
+ "run_name": "second-1", "status": "completed",
+ "started_at": "2026-02-01T00:00:00Z", "finished_at": "2026-02-01T00:20:00Z",
+ "metrics": {"f1": 0.71}, "primary_metric": "f1"
+}

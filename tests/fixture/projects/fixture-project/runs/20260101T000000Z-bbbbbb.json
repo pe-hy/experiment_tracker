@@ -1,0 +1,9 @@
+{
+ "schema_version": 1,
+ "project": "fixture-project", "variant": "deeper-encoder",
+ "variant_description": "Increase encoder depth from 12 to 16 layers to test whether capacity is the bottleneck.",
+ "run_name": "<script>alert(1)</script>", "status": "failed",
+ "started_at": "2026-01-02T00:00:00Z", "finished_at": "2026-01-02T00:30:00Z",
+ "metrics": {"val_accuracy": 0.4, "val_loss": 0.99},
+ "notes": "<script>alert(1)</script> and <img src=x onerror=alert(2)>"
+}

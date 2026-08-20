@@ -39,8 +39,9 @@ A GitHub repo left alone for a year is still exactly there.
 
 **One immutable file per run** is what makes concurrent writers safe. Two agents never touch
 the same path, so there is no read-modify-write anywhere on the write path and no
-lost-update class of bug. Run IDs are `<utc-timestamp>-<random>`, so they also sort
-chronologically for free.
+lost-update class of bug. Run IDs are `<utc-timestamp>-<content-hash>`: they sort
+chronologically for free, and because the hash covers the run's own fields, posting the same
+result twice lands on the same file rather than duplicating it.
 
 **The index is derived, never authored.** `data/index.json` is a build artifact regenerated
 from the run files on every push. If it is ever wrong, delete it and push — it comes back.
@@ -49,14 +50,17 @@ The run files are the only source of truth.
 ## Layout
 
 ```
-data/
-  index.json                        # GENERATED. Do not hand-edit.
+data/                               # IN THE REPO — agent-written, the source of truth
   projects/
     <project-slug>/
-      project.json                  # GENERATED: rolled-up project + variant metadata
+      project.meta.json             # OPTIONAL, hand-written. Overrides inferred metadata.
       runs/
-        <run-id>.json               # WRITTEN BY AGENT. Immutable.
+        <run-id>.json               # WRITTEN BY AGENT. Immutable, never edited.
         <run-id>.patch              # WRITTEN BY AGENT, optional. Raw git diff text.
+_site/                              # BUILT BY CI — never committed, never in the repo
+  data/index.json                   # projects, variants, run summaries, recent-runs feed
+  data/projects/<slug>/project.json # rolled-up project + variant metadata
+  data/projects/<slug>/runs/…       # the run files, copied through verbatim
 site/
   index.html                        # the whole app shell
   assets/app.css                    # design system
@@ -83,15 +87,28 @@ failed to upload.
 |---|---|---|
 | Files in one directory | 3,000 | shard is `<project>/runs/`, so 3,000 runs *per project* |
 | Content-generating API requests | 80/min, 500/hr | ~2 per run, a few runs/day |
-| Recommended push rate | 6/min per repo | serialized by a lock, ≥1 s apart |
+| Recommended push rate | 6/min per repo | 1–2 writes per run, a few runs/day |
 | Published site | 1 GB | patches capped at 256 KB each |
 | Pages bandwidth | 100 GB/month (soft) | two readers |
 | Repo size | 1 GB comfortable, 10 GB hard | — |
 
-The write path retries with jittered exponential backoff on `409`/`422` (ref race) and
-honours `Retry-After` on `403`/`429`. Concurrent writes to *different* paths can still
-conflict, because the Contents API commits and pushes server-side against the same ref —
-unique paths remove the stale-SHA conflict, not the ref race.
+The write path retries with exponential backoff on `409`/`422` (ref race) and honours
+`Retry-After` on `403`/`429`. Concurrent writes to *different* paths can still conflict,
+because the Contents API commits and pushes server-side against the same ref — unique paths
+remove the stale-SHA conflict, not the ref race. There is no cross-process lock; retries are
+the whole mechanism, which is sufficient at a few runs per day and would not be at a few
+hundred per minute.
+
+Two failure modes get explicit handling rather than a retry:
+
+* **A lost response after the commit landed.** `urllib` does not wrap a timeout during the
+  *response* phase, so it surfaces as a bare `socket.timeout` rather than a `URLError`;
+  catching only `URLError` would let it escape as a traceback after the write succeeded. The
+  poster catches `OSError` (which covers both) and, before retrying, checks whether the file
+  now exists.
+* **Duplicate runs.** The run id is a hash of the run's own content, so a retry — or a
+  human re-running the same command — targets the same path instead of creating a second
+  copy of the same result under a new id.
 
 ## Freshness
 
