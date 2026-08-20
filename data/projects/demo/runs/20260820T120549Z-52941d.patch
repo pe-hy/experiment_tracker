@@ -1,0 +1,13 @@
+diff --git a/train.py b/train.py
+index ebb95bd186d532c1d677b001785191d05c005bfa..18fad42cb23c5c022a0fe995f6ce319b993429bc 100644
+--- a/train.py
++++ b/train.py
+@@ -1,4 +1,5 @@
+-LR = 1e-4
+-LAYERS = 12
++LR = 3e-4          # raised after the loss plateaued
++LAYERS = 16        # deeper encoder
++DROPOUT = 0.1      # new
+ def main():
+-    print("training")
++    print("training deeper model")
