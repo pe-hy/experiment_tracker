@@ -1,10 +1,23 @@
 {
- "schema_version": 1,
- "project": "second-project", "project_name": "Second Project",
+ "derived_from": [
+  {
+   "project": "fixture-project",
+   "relation": "evaluates",
+   "run_id": "20260101T000000Z-aaaaaa"
+  }
+ ],
+ "finished_at": "2026-02-01T00:20:00Z",
+ "metrics": {
+  "f1": 0.71
+ },
+ "primary_metric": "f1",
+ "project": "second-project",
  "project_description": "Exists so the cross-project feed has something to cross.",
+ "project_name": "Second Project",
+ "run_name": "second-1",
+ "schema_version": 1,
+ "started_at": "2026-02-01T00:00:00Z",
+ "status": "completed",
  "variant": "baseline",
- "variant_description": "Reference configuration for the second project, unchanged from the paper.",
- "run_name": "second-1", "status": "completed",
- "started_at": "2026-02-01T00:00:00Z", "finished_at": "2026-02-01T00:20:00Z",
- "metrics": {"f1": 0.71}, "primary_metric": "f1"
+ "variant_description": "Reference configuration for the second project, unchanged from the paper."
 }

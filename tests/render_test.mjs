@@ -119,6 +119,15 @@ console.log('\nrun detail');
   check('flags a truncated patch loudly', text.includes('TRUNCATED'));
 }
 
+console.log('\nrun-to-run references');
+{
+  const { app } = await renderAt('#/p/second-project/r/20260201T000000Z-dddddd');
+  check('shows what this run was derived from', app.textContent.includes('evaluates'));
+  check('links to the referenced run',
+    app.findAll(e => (e.getAttribute('href') || '')
+      .includes('/p/fixture-project/r/20260101T000000Z-aaaaaa')).length > 0);
+}
+
 console.log('\nescaping (agent data is untrusted)');
 {
   const { app } = await renderAt('#/p/fixture-project/r/20260101T000000Z-bbbbbb');

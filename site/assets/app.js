@@ -535,6 +535,17 @@ async function viewRun(app, slug, runId) {
     }
   }
 
+  if (Array.isArray(run.derived_from) && run.derived_from.length) {
+    app.append(detailsPanel('Based on', run.derived_from.map(ref => {
+      const p = ref.project || slug;
+      const label = ref.relation || 'derived from';
+      return [label, ref.run_id
+        ? h('a', { href: `#/p/${encodeURIComponent(p)}/r/${encodeURIComponent(ref.run_id)}` },
+            `${p} / ${ref.run_id}`)
+        : fmtValue(ref)];
+    })));
+  }
+
   if (run.curves && Object.keys(run.curves).length) app.append(curvesPanel(run.curves));
 
   app.append(detailsPanel('Run', [

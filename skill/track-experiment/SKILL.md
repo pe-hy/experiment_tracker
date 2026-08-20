@@ -94,6 +94,9 @@ Required: `project`, `variant`, `variant_description`. Everything else is option
   "notes": "Run 3 of 3.",
   "seed": 1,
   "group": "seed-sweep-lr2e6",
+  "derived_from": [
+    { "project": "decisionchains", "run_id": "20260810T101500Z-3f21ab", "relation": "evaluates" }
+  ],
 
   "config": { "lr": 2e-6, "batch_size": 32, "model": "Qwen2.5-7B" },
   "tags": ["grpo", "ablation"],
@@ -113,6 +116,10 @@ Field notes:
   better. Without `metric_goals` the site guesses from the name and gets things like
   `regret` wrong.
 - `seed` / `group` — set both when running the same config across seeds.
+- `derived_from` — when this run measures or continues an earlier one (an eval scoring a
+  checkpoint, GRPO started from an SFT run), point at it. `relation` is `evaluates`,
+  `continues` or `initialised_from`. Without it, an eval and the thing it evaluates end up
+  as unrelated rows.
 - `curves` — optional `[[step, value], …]`. Downsample to ≤500 points.
 - `code` / `env` — **do not fill these in.** The script collects them, and anything you write
   by hand overrides what it detected.
