@@ -1,0 +1,118 @@
+{
+ "artifacts": [
+  {
+   "bytes": 14721965,
+   "name": "policy",
+   "path": "runs/spr/m1/mixed_policy_s37/lightning_logs/version_0/checkpoints/epoch=8-step=11952.ckpt"
+  },
+  {
+   "bytes": 11827453,
+   "name": "value",
+   "path": "runs/spr/m1/mixed_value_warm_s37/lightning_logs/version_0/checkpoints/epoch=6-step=18585.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
+  "commit_pushed": false,
+  "commit_short": "fceb642e06",
+  "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
+  "commit_time": "2026-08-20T19:39:14+02:00",
+  "describe": "fceb642",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 132,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
+ },
+ "conclusion": "Benched at both sizes under the arena protocol; see self_play_robots FINDINGS 7 and 18.",
+ "config": {
+  "corpus": "mixed",
+  "grad_clip": 1.0,
+  "lr": 0.0001
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "initialised_from",
+   "run_id": "20260803T203935Z-57f452"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "03:37:01",
+   "exit_code": "0:0",
+   "job_id": "4704318",
+   "job_name": "spr-m1-mixed-s37",
+   "nodelist": "acn24",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-20T17:47:35Z",
+ "group": "m1-mixed-seeds",
+ "hypothesis": "One size-free pair matches per-size supervised planners at both training sizes.",
+ "metric_goals": {
+  "g16r4_mean_expansions": "min",
+  "g16r4_mean_moves": "min",
+  "g16r4_mean_regret": "min",
+  "g16r4_mean_seconds": "min",
+  "g16r4_pct_optimal": "max",
+  "g16r4_solve_rate": "max",
+  "g16r4_solved": "max",
+  "g24r4_mean_expansions": "min",
+  "g24r4_mean_moves": "min",
+  "g24r4_mean_regret": "min",
+  "g24r4_mean_seconds": "min",
+  "g24r4_pct_optimal": "max",
+  "g24r4_solve_rate": "max",
+  "g24r4_solved": "max"
+ },
+ "metrics": {
+  "g16r4_mean_expansions": 9.3844,
+  "g16r4_mean_moves": 8.2935,
+  "g16r4_mean_regret": 2.0597,
+  "g16r4_mean_seconds": 0.3564,
+  "g16r4_n": 450.0,
+  "g16r4_pct_optimal": 51.99,
+  "g16r4_solve_rate": 0.8933,
+  "g16r4_solved": 402.0,
+  "g24r4_mean_expansions": 5.0431,
+  "g24r4_mean_moves": 9.8837,
+  "g24r4_mean_regret": 2.3116,
+  "g24r4_mean_seconds": 0.325,
+  "g24r4_n": 232.0,
+  "g24r4_pct_optimal": 55.3488,
+  "g24r4_solve_rate": 0.9267,
+  "g24r4_solved": 215.0
+ },
+ "notes": "Corpus: mixed; policy + value_warm arms. Results: self_play_robots/results/m1/.",
+ "primary_metric": "g24r4_solve_rate",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-20T17:47:35Z",
+ "run_id": "20260820T174735Z-0666a2",
+ "run_name": "m1-mixed-s37",
+ "schema_version": 1,
+ "seed": 37,
+ "status": "completed",
+ "tags": [
+  "size-free",
+  "m1",
+  "self-play-program"
+ ],
+ "variant": "m1-sizefree-rebuild",
+ "variant_conclusion": "PASS: the mixed pair beats the per-size supervised pair at 24x24 (215/232, regret 2.43 vs 205/232, 4.20), ties at 16x16, transfers zero-shot both directions; replicated at seed 37.",
+ "variant_description": "Rebuild policy+value size-free (pe=none, no positional table, labeler-encoder init, lr 1e-4 + grad clip) on exact corpora at 16+24 so ONE pair plays any board size - the M1 gate of the self-play program.",
+ "variant_name": "m1-sizefree-rebuild"
+}

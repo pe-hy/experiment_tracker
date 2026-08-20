@@ -1,0 +1,101 @@
+{
+ "artifacts": [
+  {
+   "bytes": 11827389,
+   "name": "checkpoint",
+   "path": "supervised_valuenet/nn_labeler/banked/prod_v1_s11.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
+  "commit_pushed": false,
+  "commit_short": "fceb642e06",
+  "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
+  "commit_time": "2026-08-20T19:39:14+02:00",
+  "describe": "fceb642",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 132,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
+ },
+ "conclusion": "Exact audits (test splits): top1 0.915 (g8) .. 0.853 (g32), 0.852/0.842 at 40/48, 0.829/0.814 at 56/64.",
+ "config": {
+  "d_model": 192,
+  "num_classes": 96,
+  "pe": "none",
+  "recurrence": 12
+ },
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7"
+ },
+ "finished_at": "2026-08-03T20:39:35Z",
+ "hypothesis": "A pe=none looped encoder trained at 8-16 keeps its candidate ranking at sizes it never saw.",
+ "metric_goals": {
+  "regret_g12r4": "min",
+  "regret_g16r6": "min",
+  "regret_g24r4": "min",
+  "regret_g32r4": "min",
+  "regret_g40r4": "min",
+  "regret_g48r4": "min",
+  "regret_g56r4": "min",
+  "regret_g64r4": "min",
+  "regret_g8r4": "min",
+  "top1_g12r4": "max",
+  "top1_g16r6": "max",
+  "top1_g24r4": "max",
+  "top1_g32r4": "max",
+  "top1_g40r4": "max",
+  "top1_g48r4": "max",
+  "top1_g56r4": "max",
+  "top1_g64r4": "max",
+  "top1_g8r4": "max"
+ },
+ "metrics": {
+  "regret_g12r4": 0.2542,
+  "regret_g16r6": 0.4316,
+  "regret_g24r4": 0.4253,
+  "regret_g32r4": 0.5595,
+  "regret_g40r4": 0.5866,
+  "regret_g48r4": 0.6254,
+  "regret_g56r4": 0.7124,
+  "regret_g64r4": 0.6651,
+  "regret_g8r4": 0.1778,
+  "top1_g12r4": 0.8977,
+  "top1_g16r6": 0.8523,
+  "top1_g24r4": 0.8827,
+  "top1_g32r4": 0.8529,
+  "top1_g40r4": 0.8517,
+  "top1_g48r4": 0.842,
+  "top1_g56r4": 0.8294,
+  "top1_g64r4": 0.814,
+  "top1_g8r4": 0.9149
+ },
+ "notes": "Sources: nn_labeler/results/audit_prod_v1_s11_full.json, audit_coarse_g40r4/g48r4.json, self_play_robots/results/audit/labeler_prod_v1_s11_g56g64.json (job 4707188). Documented in supervised_valuenet FINDINGS (labeler track) and self_play_robots FINDINGS 17.",
+ "primary_metric": "top1_g64r4",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-20T17:47:21Z",
+ "run_id": "20260803T203935Z-57f452",
+ "run_name": "labeler-prod-v1-s11",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "labeler",
+  "size-free",
+  "supervised"
+ ],
+ "variant": "sizefree-labeler-pe-none",
+ "variant_conclusion": "Held: argmin agreement 0.85-0.92 at 8-32 and still 0.81-0.85 at 40-64 (zero-shot); adopted as the bootstrap value net and encoder template for every size-free arm.",
+ "variant_description": "Size-free LoopedValueNet labeler (pe=none, HL-Gauss 96 bins) trained on exact corpora at 8-16 boards only; it has no size-dependent parameters, so one checkpoint labels any board size. The bet: fidelity holds far beyond the training sizes.",
+ "variant_name": "sizefree-labeler-pe-none"
+}

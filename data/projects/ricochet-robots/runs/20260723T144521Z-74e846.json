@@ -1,0 +1,95 @@
+{
+ "artifacts": [
+  {
+   "bytes": 17084581,
+   "name": "policy",
+   "path": "supervised_valuenet/scaling/runs/g32r4/backward-policy/lightning_logs/version_0/checkpoints/epoch=1-step=1642.ckpt"
+  },
+  {
+   "bytes": 14083443,
+   "name": "value",
+   "path": "supervised_valuenet/scaling/runs/g32r4/backward-value/lightning_logs/version_1/checkpoints/epoch=15-step=52528.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
+  "commit_pushed": false,
+  "commit_short": "fceb642e06",
+  "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
+  "commit_time": "2026-08-20T19:39:14+02:00",
+  "describe": "fceb642",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 132,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
+ },
+ "conclusion": "Recorded arena row (graded 175; 1200 expansions, k=5, prefix-check, replay-certified).",
+ "config": {
+  "config": "g32r4"
+ },
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7"
+ },
+ "finished_at": "2026-07-23T14:45:21Z",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_regret": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_pct_optimal": "max",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "mean_expansions": "min",
+  "mean_moves": "min",
+  "mean_regret": "min",
+  "mean_seconds": "min",
+  "pct_optimal": "max",
+  "solve_rate": "max",
+  "solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 29.6982,
+  "frontier_mean_moves": 21.2756,
+  "frontier_mean_regret": 21.2756,
+  "frontier_mean_seconds": 14.5979,
+  "frontier_n": 275.0,
+  "frontier_pct_optimal": 0.0,
+  "frontier_solve_rate": 0.4618,
+  "frontier_solved": 127.0,
+  "mean_expansions": 13.7829,
+  "mean_moves": 9.9796,
+  "mean_regret": 2.3673,
+  "mean_seconds": 10.2223,
+  "n": 175.0,
+  "pct_optimal": 51.7007,
+  "solve_rate": 0.84,
+  "solved": 147.0
+ },
+ "notes": "Source: supervised_valuenet/scaling/results/g32r4/comparison.json",
+ "primary_metric": "solve_rate",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-20T17:47:23Z",
+ "run_id": "20260723T144521Z-74e846",
+ "run_name": "backward-supervised-g32r4",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "backward",
+  "g32r4"
+ ],
+ "variant": "persize-backward-supervised",
+ "variant_description": "Per-size PolicyTF policy + LoopedValueNet value trained on exact solver labels: the backward subgoal planner at one fixed board size. This is the frozen 'backward supervised' baseline every self-play arm is gated against.",
+ "variant_name": "persize-backward-supervised"
+}

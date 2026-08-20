@@ -1,0 +1,114 @@
+{
+ "artifacts": [
+  {
+   "bytes": 14721901,
+   "name": "policy",
+   "path": "runs/spr/variants/v00_control/policy/lightning_logs/version_0/checkpoints/epoch=2-step=132.ckpt"
+  },
+  {
+   "bytes": 11827261,
+   "name": "value",
+   "path": "runs/spr/variants/v00_control/value/lightning_logs/version_0/checkpoints/epoch=0-step=87.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
+  "commit_pushed": false,
+  "commit_short": "fceb642e06",
+  "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
+  "commit_time": "2026-08-20T19:39:14+02:00",
+  "describe": "fceb642",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 132,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
+ },
+ "conclusion": "Control reference for wave 1. Its unseen-board bench failed on a reachability-matrix KeyError (being fixed); graded+frontier rows recorded.",
+ "config": {
+  "boards": 30,
+  "config": "g24r4",
+  "vocab": "b2"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "initialised_from",
+   "run_id": "20260820T174740Z-c79334"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "01:23:00",
+   "exit_code": "0:0",
+   "job_id": "4719425",
+   "job_name": "spr-var-v00",
+   "nodelist": "acn08",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-20T17:47:41Z",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "gen_solved": "max",
+  "mean_expansions": "min",
+  "mean_moves": "min",
+  "mean_regret": "min",
+  "mean_seconds": "min",
+  "pct_optimal": "max",
+  "solve_rate": "max",
+  "solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 365.0826,
+  "frontier_mean_moves": 20.4,
+  "frontier_mean_seconds": 80.086,
+  "frontier_n": 218.0,
+  "frontier_solve_rate": 0.7339,
+  "frontier_solved": 160.0,
+  "gen_instances": 320,
+  "gen_records": 3359,
+  "gen_solved": 289,
+  "mean_expansions": 33.819,
+  "mean_moves": 10.0439,
+  "mean_regret": 2.3947,
+  "mean_seconds": 6.3444,
+  "n": 232.0,
+  "pct_optimal": 52.6316,
+  "solve_rate": 0.9828,
+  "solved": 228.0
+ },
+ "notes": "Variants lab wave 1 (v01 visit-policy targets, v04 deep-emit, v06 Gumbel root, v08 cold start, v09 strict-moves value, v12 frontier curriculum) still running; they will be tracked when their results land. See self_play_robots/variants/FINDINGS.md.",
+ "primary_metric": "frontier_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-20T17:47:41Z",
+ "run_id": "20260820T174741Z-8811c1",
+ "run_name": "varlab-v00-control",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "variants-lab",
+  "control",
+  "self-play"
+ ],
+ "variant": "varlab-control",
+ "variant_description": "Matched-budget control arm of the self-play variants lab: the current loop recipe run under the lab's frozen protocol (same seed boards, budget and warm start), so every structural variant is paired against one common reference.",
+ "variant_name": "varlab-control"
+}

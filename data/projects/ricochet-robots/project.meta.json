@@ -1,0 +1,10 @@
+{
+ "name": "Ricochet Robots Planning",
+ "description": "Neural planners for Ricochet Robots on Karolina (repo MCTS_evolution): per-size supervised backward/forward planners, a size-free NN labeler, and an AlphaZero-style certified self-play program (base and extended-B2 subgoal vocabularies, mixed-size curriculum, forward-move loop, structural variants lab). Metric: realized playable moves at equal search budget (1200 expansions, k=5, replay-certified).",
+ "primary_metric": "solve_rate",
+ "metric_goals": {
+  "solve_rate": "max", "solved": "max", "pct_optimal": "max", "mean_moves": "min",
+  "mean_regret": "min", "mean_expansions": "min", "mean_seconds": "min",
+  "frontier_solved": "max", "frontier_mean_moves": "min", "gauge_argmin": "max"
+ }
+}

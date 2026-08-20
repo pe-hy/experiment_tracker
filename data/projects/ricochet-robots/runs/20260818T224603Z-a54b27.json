@@ -1,0 +1,70 @@
+{
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
+  "commit_pushed": false,
+  "commit_short": "fceb642e06",
+  "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
+  "commit_time": "2026-08-20T19:39:14+02:00",
+  "describe": "fceb642",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 132,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
+ },
+ "conclusion": "Arena row of the pair retrained on the corrupted corpus.",
+ "config": {
+  "argmin_agreement_target": 0.86,
+  "config": "g24r4"
+ },
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7"
+ },
+ "finished_at": "2026-08-18T22:46:03Z",
+ "group": "corruption-dose-sweep",
+ "metric_goals": {
+  "mean_expansions": "min",
+  "mean_moves": "min",
+  "mean_regret": "min",
+  "mean_seconds": "min",
+  "pct_optimal": "max",
+  "solve_rate": "max",
+  "solved": "max"
+ },
+ "metrics": {
+  "mean_expansions": 25.694,
+  "mean_moves": 11.7059,
+  "mean_regret": 4.1863,
+  "mean_seconds": 26.3292,
+  "n": 232.0,
+  "pct_optimal": 41.1765,
+  "solve_rate": 0.8793,
+  "solved": 204.0
+ },
+ "notes": "Source: supervised_valuenet/scaling/results/g24r4/comparison_corrupt_d860.json; dose = argmin agreement x1000 (d860).",
+ "primary_metric": "solve_rate",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-20T17:47:30Z",
+ "run_id": "20260818T224603Z-a54b27",
+ "run_name": "corrupt-g24r4-d860",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "label-fidelity",
+  "g24r4"
+ ],
+ "variant": "label-corruption-dose",
+ "variant_description": "Retrain the g24r4 backward pair on exact labels corrupted to a controlled argmin-agreement dose, to measure how much label fidelity the planner actually needs before bench quality degrades.",
+ "variant_name": "label-corruption-dose"
+}
