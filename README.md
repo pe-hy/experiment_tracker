@@ -131,6 +131,19 @@ Two properties make this safe rather than fragile:
 
 `docs/ARCHITECTURE.md` has the details and the limits.
 
+## Reading it
+
+- **Landing page** — every project, plus a cross-project feed of the most recent runs.
+- **Project page** — one collapsible panel per variant, each headed by the description of
+  the idea and its conclusion, with a sortable run table underneath. The best value per
+  metric is marked. Tick two or more runs and hit **Compare** for a side-by-side of metrics,
+  config and code state, filtered to *differences only* by default.
+- **Run page** — metrics, hypothesis and conclusion, training curves, full config, the exact
+  code state, the uncommitted diff, and any snapshotted files. Loud warnings when a commit
+  was never pushed or a diff was truncated, because a record that looks authoritative and
+  is not is worse than a missing one.
+- **Copy CSV / Copy LaTeX** on any run table, for pasting into a paper.
+
 ## Fixing things
 
 Runs are immutable by design, but mistakes happen. Every run page has **Edit on GitHub** and

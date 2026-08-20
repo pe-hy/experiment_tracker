@@ -119,6 +119,25 @@ console.log('\nrun detail');
   check('flags a truncated patch loudly', text.includes('TRUNCATED'));
 }
 
+console.log('\ncomparing runs');
+{
+  const { app } = await renderAt('#/p/fixture-project');
+  const boxes = app.findAll(e => e.tagName === 'INPUT' && e.getAttribute('type') === 'checkbox');
+  check('every run row has a selection checkbox', boxes.length >= 2, `found ${boxes.length}`);
+  boxes.slice(0, 2).forEach(b => { b.checked = true; b.dispatch('change'); });
+  const btn = app.find(e => e.tagName === 'BUTTON' && e.textContent.startsWith('Compare 2'));
+  check('the compare button activates at two selections', !!btn);
+  if (btn) {
+    btn.dispatch('click');
+    for (let i = 0; i < 40; i++) await flush();
+    const text = app.textContent;
+    check('renders a comparison', text.includes('Comparing 2 runs'));
+    check('defaults to showing only what differs', text.includes('Differences only'));
+    check('compares config values', text.includes('batch_size') || text.includes('lr'));
+    check('compares metrics', text.includes('val_accuracy'));
+  }
+}
+
 console.log('\nrun-to-run references');
 {
   const { app } = await renderAt('#/p/second-project/r/20260201T000000Z-dddddd');

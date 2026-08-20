@@ -346,7 +346,9 @@ function runTable(project, variant) {
     best[k] = lowerIsBetter ? Math.min(...vals) : Math.max(...vals);
   });
 
+  const selected = new Set();
   const headers = [
+    { key: 'sel', label: '', plain: true },
     { key: 'run', label: 'Run' },
     { key: 'status', label: 'Status' },
     ...cols.map(k => ({ key: `m:${k}`, label: k, num: true })),
@@ -377,6 +379,7 @@ function runTable(project, variant) {
     clear(thead);
     const tr = h('tr');
     headers.forEach(col => {
+      if (col.plain) { tr.append(h('th', { style: 'width:28px' })); return; }
       const th = h('th', { class: 'sortable', role: 'columnheader', tabindex: '0' },
         col.label, h('span', { class: 'arrow' }, sortDesc ? '▼' : '▲'));
       if (sortKey === col.key) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending');
@@ -404,6 +407,13 @@ function runTable(project, variant) {
     sorted.forEach(r => {
       const href = `#/p/${encodeURIComponent(project.slug)}/r/${encodeURIComponent(r.run_id)}`;
       const tr = h('tr');
+      const box = h('input', { type: 'checkbox', 'aria-label': `select ${r.run_id}` });
+      box.addEventListener('change', () => {
+        if (box.checked) selected.add(r.run_id); else selected.delete(r.run_id);
+        updateCompareBar();
+      });
+      box.checked = selected.has(r.run_id);
+      tr.append(h('td', {}, box));
       tr.append(h('td', {}, h('a', { href }, r.run_name || r.run_id),
         r.code && r.code.dirty ? h('span', { class: 'badge badge-warn', style: 'margin-left:6px', title: 'Uncommitted changes were present' }, 'dirty') : null));
       tr.append(h('td', {}, statusBadge(r.status)));
@@ -424,7 +434,33 @@ function runTable(project, variant) {
     });
   };
 
-  renderHead(); renderBody();
+  const compareBar = h('div', { class: 'toolbar', style: 'margin:0 16px 12px; display:none' });
+  const compareBtn = h('button', { class: 'btn', type: 'button' }, 'Compare');
+  const compareCount = h('span', { class: 'xsmall faint' });
+  const compareOut = h('div');
+  compareBar.append(compareBtn, compareCount);
+
+  function updateCompareBar() {
+    compareBar.style.display = selected.size ? 'flex' : 'none';
+    compareCount.textContent = `${selected.size} selected`;
+    compareBtn.textContent = selected.size < 2 ? 'Select 2 or more' : `Compare ${selected.size} runs`;
+  }
+  compareBtn.addEventListener('click', async () => {
+    if (selected.size < 2) return;
+    clear(compareOut);
+    compareOut.append(h('p', { class: 'faint small' }, 'Loading runs…'));
+    try {
+      const full = await Promise.all([...selected].map(id =>
+        getJSON(`${DATA}/projects/${encodeURIComponent(project.slug)}/runs/${encodeURIComponent(id)}.json`)));
+      clear(compareOut);
+      compareOut.append(compareTable(full));
+    } catch (err) {
+      clear(compareOut);
+      compareOut.append(errorBanner(err));
+    }
+  });
+
+  renderHead(); renderBody(); updateCompareBar();
 
   const rowsFor = () => {
     const head = ['run', 'status', ...cols, 'duration_s', 'when'];
@@ -453,7 +489,88 @@ function runTable(project, variant) {
     }));
 
   return h('div', {}, toolbar,
-    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)));
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)),
+    compareBar, compareOut);
+}
+
+/** Runs as columns, attributes as rows — the orientation that stays readable past
+ *  two runs, with a filter for "only what differs", which is the point of comparing. */
+function compareTable(runs) {
+  const cols = runs.map(r => r.run_name || r.run_id);
+
+  const flatten = (obj, prefix, out) => {
+    for (const [k, v] of Object.entries(obj || {})) {
+      const key = prefix ? `${prefix}.${k}` : k;
+      if (v && typeof v === 'object' && !Array.isArray(v)) flatten(v, key, out);
+      else out[key] = v;
+    }
+    return out;
+  };
+
+  const sections = [
+    ['Metrics', runs.map(r => r.metrics || {})],
+    ['Config', runs.map(r => flatten(r.config, '', {}))],
+    ['Code', runs.map(r => ({
+      commit: (r.code || {}).commit_short || (r.code || {}).commit,
+      branch: (r.code || {}).branch,
+      dirty: (r.code || {}).dirty,
+    }))],
+    ['Run', runs.map(r => ({
+      status: r.status, variant: r.variant, seed: r.seed, group: r.group,
+      duration: fmtDuration(r.duration_seconds), author: r.author,
+      when: r.finished_at || r.started_at,
+    }))],
+  ];
+
+  let diffOnly = true;
+  const tbody = h('tbody');
+
+  const render = () => {
+    clear(tbody);
+    for (const [title, maps] of sections) {
+      const keys = [...new Set(maps.flatMap(m => Object.keys(m)))].sort();
+      const rows = keys.filter(key => {
+        if (!diffOnly) return true;
+        const vals = maps.map(m => JSON.stringify(m[key] ?? null));
+        return new Set(vals).size > 1;
+      });
+      if (!rows.length) continue;
+      tbody.append(h('tr', {}, h('td', {
+        colspan: String(cols.length + 1),
+        class: 'xsmall muted',
+        style: 'text-transform:uppercase;letter-spacing:.04em;background:var(--surface-2)',
+      }, title)));
+      rows.forEach(key => {
+        const vals = maps.map(m => m[key]);
+        const differs = new Set(vals.map(v => JSON.stringify(v ?? null))).size > 1;
+        tbody.append(h('tr', {},
+          h('td', { class: 'faint' }, key),
+          ...vals.map(v => h('td', {
+            class: 'num' + (differs ? ' best' : ''),
+          }, v === undefined || v === null ? '—' : fmtValue(v)))));
+      });
+    }
+    if (!tbody.childNodes.length) {
+      tbody.append(h('tr', {}, h('td', { colspan: String(cols.length + 1), class: 'faint' },
+        'These runs are identical in every field compared.')));
+    }
+  };
+
+  const toggle = h('button', { class: 'btn is-active', type: 'button' }, 'Differences only');
+  toggle.addEventListener('click', () => {
+    diffOnly = !diffOnly;
+    toggle.classList.toggle('is-active', diffOnly);
+    toggle.setAttribute('aria-pressed', String(diffOnly));
+    render();
+  });
+
+  render();
+  return h('div', { class: 'panel' },
+    h('div', { class: 'panel-head' }, h('h3', {}, `Comparing ${runs.length} runs`), toggle),
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' },
+      h('table', { class: 'tbl' },
+        h('thead', {}, h('tr', {}, h('th', {}, ''), ...cols.map(c => h('th', {}, c)))),
+        tbody))));
 }
 
 /** Copy-to-clipboard with a real fallback: the async API needs a secure context
