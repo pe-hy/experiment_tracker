@@ -11,7 +11,7 @@
   "available": true,
   "branch": "b1-language-extension-scaling-study",
   "commit": "fceb642e06e0c461dfd37cf887bc330298c22011",
-  "commit_pushed": false,
+  "commit_pushed": true,
   "commit_short": "fceb642e06",
   "commit_subject": "variants FINDINGS 3: unseen-bench bug + fix, baselines (seed 175/200 vs supervised 134/200), control rows",
   "commit_time": "2026-08-20T19:39:14+02:00",
