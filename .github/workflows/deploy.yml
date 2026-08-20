@@ -25,13 +25,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      # enablement: true turns Pages on for the repo on first run, so the site does
-      # not need anyone to click through repository settings to come up.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      - uses: actions/checkout@v5
 
       # The index is a build artifact, never committed. That keeps the repo history
       # made of nothing but agent-written run files, and removes any possibility of a
@@ -52,7 +46,7 @@ jobs:
           echo "runs: $(find _site/data -name '*.json' -path '*/runs/*' | wc -l)"
           echo "total size: $(du -sh _site | cut -f1)"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -64,4 +58,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
