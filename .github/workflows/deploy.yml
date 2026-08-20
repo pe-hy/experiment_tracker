@@ -1,0 +1,61 @@
+name: Build index and deploy to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'data/**'
+      - 'scripts/reindex.py'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Collapse a burst of run-posts into one deploy. Never cancel a deploy that is
+# already publishing — a half-finished Pages deployment is worse than a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The index is a build artifact, never committed. That keeps the repo history
+      # made of nothing but agent-written run files, and removes any possibility of a
+      # bot-commit loop. If the index is ever wrong, re-run this workflow.
+      - name: Build index
+        run: python3 scripts/reindex.py --data data --out _site/data
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r site/. _site/
+          # .nojekyll stops Pages from running Jekyll, which would drop files
+          # and directories whose names begin with an underscore.
+          touch _site/.nojekyll
+
+      - name: Report what will be published
+        run: |
+          echo "runs: $(find _site/data -name '*.json' -path '*/runs/*' | wc -l)"
+          echo "total size: $(du -sh _site | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

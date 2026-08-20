@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment Tracker</title>
+<meta name="description" content="Projects, variants and runs across our ML experiments.">
+<link rel="stylesheet" href="./assets/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>&#128202;</text></svg>">
+<script>
+  // Apply the saved theme before first paint so the page never flashes the wrong one.
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#/">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 3v18h18"></path>
+        <path d="M7 15l4-5 3 3 5-7"></path>
+      </svg>
+      Experiment Tracker
+    </a>
+    <span class="topbar-spacer"></span>
+    <span id="built-at" class="xsmall faint nowrap" title="The site is rebuilt when a run is posted."></span>
+    <button id="theme-toggle" class="btn btn-icon btn-ghost" type="button"
+            title="Toggle light / dark" aria-label="Toggle light or dark theme">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+      </svg>
+    </button>
+    <a class="btn btn-ghost" href="https://github.com/pe-hy/experiment_tracker"
+       target="_blank" rel="noopener">Repo</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div id="app" aria-live="polite">
+      <div class="col" style="gap:12px;max-width:520px">
+        <div class="skeleton" style="height:22px;width:45%"></div>
+        <div class="skeleton" style="width:75%"></div>
+        <div class="skeleton" style="width:60%"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="./assets/app.js"></script>
+</body>
+</html>

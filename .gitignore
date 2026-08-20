@@ -1,0 +1,9 @@
+# Never commit credentials. The PAT lives OUTSIDE this repo (~/.config/exptracker/token).
+*.token
+*token*.txt
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store
