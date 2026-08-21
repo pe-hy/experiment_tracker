@@ -515,6 +515,21 @@ const SUITE_PREFIXES = [
 const SUITE_RE = new RegExp(
   `^(${SUITE_PREFIXES.join('|')}|g\\d+r\\d+)_(.+)$`, 'i');
 
+/* CSS does not break inside `frontier_mean_expansions` — underscore is not a line
+ * break opportunity — so a long identifier overflows its column and paints over the
+ * next header. <wbr> adds break points at the underscores, which is also where a
+ * reader would break it. */
+function breakableName(name) {
+  const parts = String(name).split('_');
+  const out = [];
+  parts.forEach((part, i) => {
+    const last = i === parts.length - 1;
+    out.push(last ? part : part + '_');
+    if (!last) out.push(h('wbr'));
+  });
+  return out;
+}
+
 function splitMetricKey(key) {
   const m = SUITE_RE.exec(key);
   return m ? { suite: m[1], base: m[2] } : { suite: null, base: key };
@@ -641,7 +656,9 @@ function runTable(project, variant) {
       let label = [col.label];
       if (col.metric) {
         const { suite, base } = splitMetricKey(col.metric);
-        label = suite ? [h('span', { class: 'suite' }, suite), base] : [base];
+        label = suite
+          ? [h('span', { class: 'suite' }, suite), ...breakableName(base)]
+          : breakableName(base);
       }
       const arrow = h('span', { class: 'arrow' });
       const th = h('th', {

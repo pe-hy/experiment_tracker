@@ -442,7 +442,11 @@ table.tbl thead th {
      offsets the header down into its own rows. Restoring sticky requires giving
      `.table-scroll` a max-height first, and `top: 0` rather than the topbar height. */
   white-space: normal;
-  max-width: 15ch;
+  max-width: 16ch;
+  /* Belt and braces with the <wbr> break points the header builder inserts: a metric
+     name with no underscores at all would otherwise still overflow the max-width and
+     paint over the neighbouring header, because overflow is visible by default. */
+  overflow-wrap: break-word;
   vertical-align: bottom;
   background: var(--surface-2);
   color: var(--text-muted);
@@ -454,7 +458,7 @@ table.tbl thead th {
 }
 table.tbl thead th.sortable { cursor: pointer; }
 table.tbl thead th.sortable:hover { color: var(--text); background: var(--surface-3); }
-table.tbl thead th .arrow { opacity: 0; margin-left: 4px; font-size: 9px; }
+table.tbl thead th .arrow { opacity: 0; margin-left: 4px; font-size: 9px; white-space: nowrap; }
 table.tbl thead th[aria-sort] { color: var(--text); }
 table.tbl thead th[aria-sort] .arrow { opacity: 1; }
 table.tbl tbody tr:hover { background: var(--surface-2); }

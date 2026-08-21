@@ -220,6 +220,18 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
     const after = app.findAll(e => e.tagName === 'TH' && e.className.includes('sortable'))[1];
     return before === after && after.hasAttribute('aria-sort');
   })(), 'rebuilding thead drops keyboard focus to the top of the page');
+  check('no column header can overflow its own column', (() => {
+    // A th is capped at 16ch and overflow is visible, so any unbreakable run of text
+    // longer than that paints over the neighbouring header. <wbr> is inserted at
+    // underscores, so the longest run between them is what has to fit.
+    const cap = 16;
+    const heads = app.findAll(e => e.tagName === 'TH' && e.getAttribute('title'));
+    const worst = heads.reduce((acc, th) => {
+      const longest = Math.max(...th.textContent.split('_').map(p => p.trim().length));
+      return Math.max(acc, longest);
+    }, 0);
+    return heads.length > 0 && worst <= cap;
+  })(), 'insert <wbr> break points, or raise max-width on th');
   check('offers CSV export', text.includes('Copy CSV'));
   check('offers LaTeX export', text.includes('Copy LaTeX'));
 }
