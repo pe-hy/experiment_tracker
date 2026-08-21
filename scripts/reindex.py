@@ -29,6 +29,7 @@ _SUMMARY_KEYS = (
     "run_id", "run_name", "status", "author", "tags",
     "started_at", "finished_at", "duration_seconds",
     "primary_metric", "metrics", "notes", "seed", "group",
+    "conclusion", "hypothesis", "derived_from",
 )
 
 
@@ -81,13 +82,17 @@ def parse_ts(value):
     return None
 
 
-def sort_key_desc(run):
-    """Newest first. Runs with no parseable timestamp sort last, then by id."""
+def sort_key_newest_first(run):
+    """Key for a `reverse=True` sort: newest first, undated runs last.
+
+    The tuple leads with `stamp is not None` so that reversing still leaves the
+    undated runs at the end rather than promoting them to the front.
+    """
     stamp = parse_ts(run.get("finished_at")) or parse_ts(run.get("started_at"))
     # Strip tzinfo so naive and aware timestamps remain mutually comparable.
     if stamp is not None and stamp.tzinfo is not None:
         stamp = stamp.replace(tzinfo=None)
-    return (stamp is None, stamp or datetime.min, run.get("run_id") or "")
+    return (stamp is not None, stamp or datetime.min, run.get("run_id") or "")
 
 
 def is_number(value):
@@ -117,6 +122,37 @@ def summarise(run):
     return out
 
 
+# Three relations, deliberately. `derived-from` is the workhorse; `composes` is the
+# only intrinsically multi-parent one and the only one drawn differently (a merge);
+# `replicates` says the child contains no new idea, so drawing it as a new branch
+# would be a lie. Anything else people reach for — "ablation-of", "supersedes",
+# "control-for" — is either a status on a node or a fact already implied by an edge.
+RELATIONS = ("derived-from", "composes", "replicates")
+VARIANT_STATUSES = ("active", "adopted", "refuted", "superseded", "inconclusive",
+                    "abandoned", "paused", "done")
+VARIANT_ROLES = ("control", "baseline")
+
+
+def _clean_edges(raw, self_slug):
+    """Normalise agent-supplied lineage edges. Never raises on bad input."""
+    out, seen = [], set()
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        parent = str(item.get("variant") or "").strip()
+        if not parent or parent == self_slug or parent in seen:
+            continue
+        seen.add(parent)
+        relation = item.get("relation")
+        note = item.get("note")
+        out.append({
+            "variant": parent,
+            "relation": relation if relation in RELATIONS else "derived-from",
+            "note": (str(note)[:120] if note else None),
+        })
+    return out
+
+
 def collect_variants(runs):
     """Group a project's runs into variants.
 
@@ -138,6 +174,8 @@ def collect_variants(runs):
                 "description_from": None,
                 "conclusion": "",
                 "status": None,
+                "role": None,
+                "derived_from": None,
                 "runs": [],
             }
             order.append(slug)
@@ -151,8 +189,12 @@ def collect_variants(runs):
         conclusion = (run.get("variant_conclusion") or "").strip()
         if conclusion and not entry["conclusion"]:
             entry["conclusion"] = conclusion
-        if not entry["status"] and run.get("variant_status"):
+        if not entry["status"] and run.get("variant_status") in VARIANT_STATUSES:
             entry["status"] = run["variant_status"]
+        if not entry["role"] and run.get("variant_role") in VARIANT_ROLES:
+            entry["role"] = run["variant_role"]
+        if entry["derived_from"] is None and isinstance(run.get("variant_derived_from"), list):
+            entry["derived_from"] = _clean_edges(run["variant_derived_from"], slug)
         entry["runs"].append(summarise(run))
 
     variants = []
@@ -160,10 +202,263 @@ def collect_variants(runs):
         entry = by_slug[slug]
         entry["run_count"] = len(entry["runs"])
         entry["last_activity"] = _last_activity(entry["runs"])
+        entry["first_activity"] = _first_activity(entry["runs"])
         variants.append(entry)
     # Most recently active variant first.
     variants.sort(key=lambda v: (v["last_activity"] or ""), reverse=True)
     return variants
+
+
+# --------------------------------------------------------------------- lineage
+
+def read_curated(project_dir):
+    """Hand-written `lineage.json`, which overrides anything an agent asserted.
+
+    This is the only way a human can say "no, that edge is wrong" without editing
+    an immutable run file.
+    """
+    path = os.path.join(project_dir, "lineage.json")
+    if not os.path.isfile(path):
+        return {}
+    data = read_json(path)
+    if not isinstance(data, dict):
+        return {}
+    variants = data.get("variants")
+    return variants if isinstance(variants, dict) else {}
+
+
+def _reachable(adj, start, target):
+    """Can `target` be reached from `start`? Iterative, so a malformed graph cannot
+    blow the stack."""
+    if start == target:
+        return True
+    seen, stack = set([start]), [start]
+    while stack:
+        node = stack.pop()
+        for nxt in adj.get(node, ()):
+            if nxt == target:
+                return True
+            if nxt not in seen:
+                seen.add(nxt)
+                stack.append(nxt)
+    return False
+
+
+def build_lineage(variants, curated):
+    """Turn variant parent declarations into rows the browser can draw directly.
+
+    The frontend does no graph work: no traversal, no layer assignment, no rail
+    allocation. It maps these rows to list items and draws the integers.
+    """
+    order_seen = {}
+    for i, v in enumerate(sorted(variants, key=lambda v: (v.get("first_activity") or "~", v["variant"]))):
+        order_seen[v["variant"]] = i
+    slugs = set(v["variant"] for v in variants)
+    by_slug = dict((v["variant"], v) for v in variants)
+
+    # Authority order: what an agent declared, then what a human curated.
+    declared = {}
+    sources = {"variant": 0, "curated": 0}
+    for v in variants:
+        if v.get("derived_from"):
+            declared[v["variant"]] = list(v["derived_from"])
+            sources["variant"] += len(v["derived_from"])
+    for child, entry in curated.items():
+        if child in slugs and isinstance(entry, dict) and "derived_from" in entry:
+            edges = entry["derived_from"]
+            if isinstance(edges, list):
+                cleaned = _clean_edges(edges, child)
+                # An explicit [] is meaningful: "this really is a root".
+                declared[child] = cleaned
+                sources["curated"] += len(cleaned)
+
+    dropped = []
+    candidate = []
+    for child in sorted(declared, key=lambda c: (order_seen.get(c, 0), c)):
+        for edge in declared[child]:
+            if edge["variant"] not in slugs:
+                dropped.append({"child": child, "parent": edge["variant"],
+                                "reason": "unknown variant"})
+                continue
+            candidate.append((child, edge))
+
+    # Cycles are refused at insertion rather than detected during traversal, so
+    # everything downstream may assume the graph is acyclic.
+    parents, adj = {}, {}
+    for child, edge in candidate:
+        parent = edge["variant"]
+        if _reachable(adj, child, parent):
+            dropped.append({"child": child, "parent": parent,
+                            "reason": "would create a cycle"})
+            continue
+        parents.setdefault(child, []).append(edge)
+        adj.setdefault(parent, []).append(child)
+
+    children = {}
+    for child, edges in parents.items():
+        for edge in edges:
+            children.setdefault(edge["variant"], []).append(
+                {"variant": child, "relation": edge["relation"]})
+    for key in children:
+        children[key].sort(key=lambda c: (order_seen.get(c["variant"], 0), c["variant"]))
+
+    # Longest path from any root, used for the indented fallback and for sorting.
+    depth_memo = {}
+
+    def depth(node):
+        if node in depth_memo:
+            return depth_memo[node]
+        depth_memo[node] = 0          # guards against a cycle that slipped through
+        best = 0
+        for edge in parents.get(node, ()):
+            best = max(best, 1 + depth(edge["variant"]))
+        depth_memo[node] = best
+        return best
+
+    # Topological, depth-first, so a chain of ideas stays contiguous on one rail.
+    emitted, order = set(), []
+    roots = sorted([v for v in slugs if not parents.get(v)],
+                   key=lambda v: (order_seen.get(v, 0), v))
+    stack = list(roots)
+    remaining = set(slugs)
+    while remaining:
+        pick = None
+        for i, node in enumerate(stack):
+            if node in remaining and all(e["variant"] in emitted for e in parents.get(node, ())):
+                pick = node
+                stack.pop(i)
+                break
+        if pick is None:
+            ready = [n for n in remaining
+                     if all(e["variant"] in emitted for e in parents.get(n, ()))]
+            if not ready:
+                # Unreachable after cycle refusal; degrade to a flat list rather than spin.
+                for node in sorted(remaining, key=lambda n: (order_seen.get(n, 0), n)):
+                    order.append(node)
+                    emitted.add(node)
+                remaining.clear()
+                break
+            pick = min(ready, key=lambda n: (order_seen.get(n, 0), n))
+        if pick in emitted:
+            continue
+        order.append(pick)
+        emitted.add(pick)
+        remaining.discard(pick)
+        stack = [c["variant"] for c in children.get(pick, ())] + stack
+
+    # Rails: one per pending edge, not per pending node. That is what makes a
+    # multi-parent variant render as a visible merge instead of quietly reusing
+    # a single rail and hiding the composition.
+    rails = []
+
+    def first_free():
+        for i, r in enumerate(rails):
+            if r is None:
+                return i
+        rails.append(None)
+        return len(rails) - 1
+
+    rows = []
+    for node in order:
+        incoming = [i for i, r in enumerate(rails) if r == node]
+        col = incoming[0] if incoming else first_free()
+        merge_from = incoming[1:]
+        for i in incoming:
+            rails[i] = None
+        if col < len(rails):
+            rails[col] = None
+        through = [i for i, r in enumerate(rails) if r is not None and i != col]
+
+        kids = children.get(node, [])
+        forks = []
+        for j, kid in enumerate(kids):
+            i = col if j == 0 else first_free()
+            while i >= len(rails):
+                rails.append(None)
+            rails[i] = kid["variant"]
+            forks.append(i)
+        while rails and rails[-1] is None:
+            rails.pop()
+
+        variant = by_slug[node]
+        rows.append({
+            "variant": node,
+            "col": col,
+            "depth": depth(node),
+            "merge_from": merge_from,
+            "through": through,
+            "forks": forks,
+            "terminal": not kids,
+            "parents": [dict(e) for e in parents.get(node, ())],
+            "children": [dict(c) for c in kids],
+            "status": variant.get("status"),
+            "role": variant.get("role"),
+            "run_count": variant.get("run_count", 0),
+            "description": variant.get("description", ""),
+            "conclusion": variant.get("conclusion", ""),
+            "last_activity": variant.get("last_activity"),
+        })
+
+    rail_count = 1
+    for row in rows:
+        rail_count = max(rail_count, row["col"] + 1,
+                         *(x + 1 for x in (row["through"] + row["forks"] + row["merge_from"]) or [0]))
+
+    edge_count = sum(len(v) for v in parents.values())
+    return {
+        "available": edge_count > 0,
+        "edge_count": edge_count,
+        "node_count": len(rows),
+        "rail_count": rail_count,
+        "sources": sources,
+        "dropped": dropped,
+        "rows": rows,
+    }
+
+
+def build_provenance(runs, variants):
+    """Checkpoint provenance, kept strictly apart from idea lineage.
+
+    These are two different graphs and they diverge at exactly the interesting
+    nodes: every variants-lab arm warm-started from the same checkpoint, while
+    their *ideas* came from the control arm. Merging them would relabel a true
+    artifact edge as a false idea edge, so this is rendered as a chip and never
+    as a rail.
+    """
+    slugs = set(v["variant"] for v in variants)
+    run_to_variant = {}
+    for run in runs:
+        if run.get("run_id"):
+            run_to_variant[run["run_id"]] = run.get("variant")
+
+    counted = {}
+    for run in runs:
+        child = run.get("variant")
+        refs = run.get("derived_from")
+        if not child or not isinstance(refs, list):
+            continue
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            parent = run_to_variant.get(ref.get("run_id"))
+            if not parent or parent == child or parent not in slugs:
+                continue
+            key = (child, parent, ref.get("relation") or "derived_from")
+            counted[key] = counted.get(key, 0) + 1
+
+    edges = [{"child": c, "parent": p, "relation": r, "run_count": n}
+             for (c, p, r), n in sorted(counted.items())]
+    return {"edges": edges, "covered": len(set(e["child"] for e in edges))}
+
+
+def _first_activity(runs):
+    stamps = []
+    for run in runs:
+        for key in ("started_at", "finished_at"):
+            if run.get(key):
+                stamps.append(run[key])
+                break
+    return min(stamps) if stamps else None
 
 
 def _last_activity(runs):
@@ -193,7 +488,7 @@ def build_project(project_dir, slug):
             data["run_id"] = name[:-5]
             runs.append(data)
 
-    runs.sort(key=sort_key_desc)
+    runs.sort(key=sort_key_newest_first, reverse=True)
 
     # Optional hand-written project metadata, for a title and blurb nicer than
     # anything an agent would invent. Never required — so its absence must not be
@@ -254,6 +549,9 @@ def build_project(project_dir, slug):
         # reconstruct after the fact.
         "gpu_hours": _sum_gpu_hours(runs),
     }
+    curated = read_curated(project_dir)
+    project["lineage"] = build_lineage(variants, curated)
+    project["provenance"] = build_provenance(runs, variants)
     return project, runs
 
 
@@ -362,6 +660,7 @@ def main():
             "metric_goals": project["metric_goals"],
             "status": project["status"],
             "gpu_hours": project["gpu_hours"],
+            "lineage_edges": project["lineage"]["edge_count"],
             "statuses": project["statuses"],
             "tags": project["tags"],
             # A few recent variant blurbs make the project cards genuinely informative

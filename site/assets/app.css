@@ -715,3 +715,101 @@ table.tbl thead th .suite {
 
 /* Sample counts are context, not results — never the thing you scan for. */
 table.tbl td.count { color: var(--text-faint); }
+
+/* --- 16. Verdict strip ------------------------------------------------- */
+
+.verdicts {
+  display: flex; align-items: center; gap: var(--s2);
+  flex-wrap: wrap;
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+
+/* --- 17. Tabs ---------------------------------------------------------- */
+
+.tabs {
+  display: flex; gap: var(--s1);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s5);
+}
+.tab {
+  padding: var(--s2) var(--s4);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+.tab.is-active {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--line);
+  border-bottom: 1px solid var(--surface);
+}
+
+/* --- 18. Lineage rails ------------------------------------------------- */
+
+:root { --rail: var(--line-strong); --rail-active: var(--accent); }
+
+.lineage-rows { list-style: none; margin: 0; padding: 0; }
+
+.lineage-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+.lineage-row:last-child { border-bottom: none; }
+.lineage-row:hover { background: var(--surface-2); }
+
+.lineage-gutter { flex: none; align-self: stretch; }
+.lineage-gutter .rail { display: block; overflow: visible; }
+
+.rail-line {
+  fill: none;
+  stroke: var(--rail);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.rail-cap { stroke-width: 2; }
+.rail-dot { fill: var(--surface); stroke: var(--rail); stroke-width: 2; }
+/* An idea that was tested and did not work stays at full contrast — it is a
+   result, not an absence — but it is drawn hollow so the eye can find it. */
+.rail-dot.status-refuted { stroke: var(--bad); fill: var(--bg); }
+.rail-dot.status-adopted { stroke: var(--ok); fill: var(--ok); }
+.rail-dot.status-superseded { stroke: var(--text-faint); fill: var(--surface-3); }
+.rail-dot.status-active { stroke: var(--rail); fill: var(--surface); }
+
+.lineage-body { flex: 1 1 auto; min-width: 0; padding: var(--s3) 0; }
+.lineage-head {
+  display: flex; align-items: center; gap: var(--s2);
+  flex-wrap: wrap; min-width: 0;
+  min-height: 22px;
+}
+.lineage-name { font-weight: 620; overflow-wrap: anywhere; }
+.lineage-meta { display: flex; gap: var(--s1); flex-wrap: wrap; margin-top: var(--s1); }
+.chip-prov { background: transparent; border-style: dashed; }
+.lineage-gist {
+  margin-top: var(--s1);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.45;
+  max-width: 92ch;
+}
+.lineage-verdict {
+  margin-top: var(--s2);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  padding-left: var(--s3);
+  border-left: 2px solid var(--ok);
+  max-width: 92ch;
+}
+.lineage-verdict .callout-label { display: block; }
+
+@media (max-width: 720px) {
+  .lineage-gutter { display: none; }
+}

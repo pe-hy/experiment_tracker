@@ -82,7 +82,12 @@ export class Element extends Node {
     };
   }
 
-  setAttribute(k, v) { this.attributes[k] = String(v); }
+  setAttribute(k, v) {
+    this.attributes[k] = String(v);
+    // Browsers keep these in sync; SVG elements are built via setAttribute('class').
+    if (k === 'class') this.className = String(v);
+  }
+  scrollIntoView() {}
   getAttribute(k) { return k in this.attributes ? this.attributes[k] : null; }
   removeAttribute(k) { delete this.attributes[k]; }
   hasAttribute(k) { return k in this.attributes; }
@@ -139,6 +144,7 @@ export function installDOM({ fetchImpl, hash = '' }) {
     documentElement: root,
     body,
     createElement: tag => new Element(tag),
+    createElementNS: (ns, tag) => new Element(tag),
     createTextNode: data => new Text(data),
     querySelector: sel => (sel.startsWith('#') ? byId[sel.slice(1)] || null : null),
   };
@@ -148,7 +154,9 @@ export function installDOM({ fetchImpl, hash = '' }) {
     addEventListener() {},
     scrollTo() {},
     isSecureContext: false,
+    history: { scrollRestoration: 'auto' },
   };
+  globalThis.requestAnimationFrame = (fn) => setImmediate(fn);
   globalThis.localStorage = {
     _v: {},
     getItem(k) { return this._v[k] ?? null; },

@@ -67,6 +67,47 @@ Also fill:
 - `variant_conclusion` — the verdict on the *idea* once you know it. Including "this did not
   work". Negative results are the main reason this tracker is worth keeping.
 
+## Step 3b — Where did this idea come from?
+
+Only when you are creating a **new** variant. Answer the first question that applies:
+
+1. Same recipe as an existing variant, re-run to check the result holds (new seed, new
+   machine)? → `"relation": "replicates"`, one parent.
+2. A combination of two or more existing variants? → `"relation": "composes"`, and list
+   **every** one of them.
+3. Otherwise: which single existing variant did you start from and change? →
+   `"relation": "derived-from"`.
+
+```json
+"variant_derived_from": [
+  { "variant": "varlab-deep-emit",          "relation": "composes" },
+  { "variant": "varlab-strict-moves-value", "relation": "composes" }
+]
+```
+
+Copy parent slugs **exactly** from `--list`. If the honest answer is "nothing — this is a
+fresh line of work", **omit the field**.
+
+**If you are unsure, omit it.** A missing parent is a blank someone can fill in later. A
+wrong parent is a false claim about how the research happened, and it will be believed.
+
+Also set `variant_status` once you know it:
+
+| Value | Means |
+|---|---|
+| `adopted` | It worked and became the default |
+| `refuted` | Tested and it did not work. **Record these — they are the point.** |
+| `superseded` | Worked, then something better replaced it |
+| `inconclusive` | Measured, no clear signal |
+| `active` | Still open |
+
+And `variant_role: "control"` or `"baseline"` for a reference arm everything else is
+measured against.
+
+Do **not** invent lineage for variants that already exist — post a run with the corrected
+`variant_derived_from`, or edit `data/projects/<project>/lineage.json`, which overrides
+anything an agent asserted.
+
 ## Step 4 — Build the payload
 
 Required: `project`, `variant`, `variant_description`. Everything else is optional.
@@ -94,6 +135,8 @@ Required: `project`, `variant`, `variant_description`. Everything else is option
   "notes": "Run 3 of 3.",
   "seed": 1,
   "group": "seed-sweep-lr2e6",
+  "variant_status": "adopted",
+  "variant_derived_from": [{ "variant": "grpo-terminal-reward", "relation": "derived-from" }],
   "derived_from": [
     { "project": "decisionchains", "run_id": "20260810T101500Z-3f21ab", "relation": "evaluates" }
   ],

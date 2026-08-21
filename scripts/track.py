@@ -53,6 +53,13 @@ MAX_SNAPSHOT_FILES = 10
 GIT_TIMEOUT = 20
 
 REQUIRED = ("project", "variant", "variant_description")
+
+# Idea lineage. Three relations only: an agent months from now has to pick one
+# correctly and unprompted, so every extra option is a new way to be wrong.
+RELATIONS = ("derived-from", "composes", "replicates")
+VARIANT_STATUSES = ("active", "adopted", "refuted", "superseded", "inconclusive",
+                    "abandoned", "paused", "done")
+VARIANT_ROLES = ("control", "baseline")
 MIN_DESCRIPTION = 25
 
 # Credential shapes. Anything matching these must never reach a public repo.
@@ -723,6 +730,40 @@ def validate(payload):
         if not isinstance(goals, dict) or any(v not in ("max", "min")
                                               for v in goals.values()):
             raise TrackerError("'metric_goals' must map metric name -> \"max\" or \"min\".")
+
+    status = payload.get("variant_status")
+    if status is not None and status not in VARIANT_STATUSES:
+        raise TrackerError(
+            "'variant_status' must be one of: %s (got %r).\n"
+            "Use 'refuted' for an idea that was tested and did not work — those are "
+            "the ones worth keeping." % (", ".join(VARIANT_STATUSES), status))
+
+    role = payload.get("variant_role")
+    if role is not None and role not in VARIANT_ROLES:
+        raise TrackerError("'variant_role' must be one of: %s (got %r)."
+                           % (", ".join(VARIANT_ROLES), role))
+
+    lineage = payload.get("variant_derived_from")
+    if lineage is not None:
+        if not isinstance(lineage, list):
+            raise TrackerError("'variant_derived_from' must be a list of objects.")
+        for item in lineage:
+            if not isinstance(item, dict) or not str(item.get("variant") or "").strip():
+                raise TrackerError(
+                    "Each entry in 'variant_derived_from' needs a non-empty "
+                    "\"variant\" naming the parent variant's slug. Got: %r" % (item,))
+            relation = item.get("relation")
+            # A typo is caught here rather than silently coerced, because the poster
+            # is the last place a human sees the payload.
+            if relation is not None and relation not in RELATIONS:
+                raise TrackerError(
+                    "Unknown relation %r. Use one of: %s.\n"
+                    "  derived-from = started from that idea and changed something\n"
+                    "  composes     = combines two or more existing variants\n"
+                    "  replicates   = same recipe re-run to check the result holds"
+                    % (relation, ", ".join(RELATIONS)))
+            if str(item.get("variant")).strip() == str(payload.get("variant")).strip():
+                raise TrackerError("A variant cannot derive from itself.")
 
 
 def check_naming(payload, index, force_new):

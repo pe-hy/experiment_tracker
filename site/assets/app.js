@@ -273,7 +273,7 @@ function truncate(text, n) {
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
 }
 
-async function viewProject(app, slug) {
+async function viewProject(app, slug, tab, focusVariant) {
   const project = await getJSON(`${DATA}/projects/${encodeURIComponent(slug)}/project.json`);
   clear(app);
 
@@ -292,6 +292,28 @@ async function viewProject(app, slug) {
 
   if (!project.variants.length) {
     app.append(empty('No runs in this project yet'));
+    return;
+  }
+
+  app.append(verdictStrip(project));
+
+  // The story is the default view and the tables are a tab, not the other way
+  // round: this is a research record, and the metrics are evidence for the ideas
+  // rather than the point of the page.
+  const tabs = [
+    { key: '', label: 'Story', href: `#/p/${encodeURIComponent(slug)}` },
+    { key: 'runs', label: `Runs (${project.run_count})`,
+      href: `#/p/${encodeURIComponent(slug)}/runs` },
+  ];
+  app.append(h('div', { class: 'tabs', role: 'tablist' },
+    tabs.map(t => h('a', {
+      class: 'tab' + (t.key === (tab || '') ? ' is-active' : ''),
+      href: t.href, role: 'tab',
+      'aria-selected': t.key === (tab || '') ? 'true' : 'false',
+    }, t.label))));
+
+  if ((tab || '') !== 'runs') {
+    app.append(lineageView(project));
     return;
   }
 
@@ -315,6 +337,19 @@ async function viewProject(app, slug) {
     h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => setAll(false) }, 'Collapse all')));
 
   panels.forEach(p => app.append(p));
+
+  if (focusVariant) {
+    const target = panels.find(p => p.dataset.variant === focusVariant);
+    if (target) {
+      target.setAttribute('open', '');
+      target.open = true;
+      target.ensureTable();
+      saveOpenState(project.slug, focusVariant, true);
+      if (target.scrollIntoView) {
+        requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+      }
+    }
+  }
 }
 
 /* Which variants a reader had open is a property of how they were reading, not of the
@@ -342,6 +377,31 @@ const VARIANT_STATUS = {
   done: ['badge-ok', 'done'],
   active: ['badge-accent', 'active'],
 };
+
+/** One line answering "how is this project going?" — the only place that does. */
+function verdictStrip(project) {
+  const counts = {};
+  let concluded = 0;
+  project.variants.forEach(v => {
+    if (v.conclusion) concluded += 1;
+    const key = v.status || (v.conclusion ? 'concluded' : 'open');
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  const total = project.variants.length;
+
+  const strip = h('div', { class: 'verdicts' });
+  const order = ['adopted', 'refuted', 'superseded', 'inconclusive', 'concluded',
+                 'abandoned', 'paused', 'done', 'active', 'open'];
+  order.forEach(key => {
+    if (!counts[key]) return;
+    const label = STATUS_LABEL[key] || ['badge-info', key];
+    strip.append(h('span', { class: `badge ${label[0]}` },
+      `${counts[key]} ${key === 'open' ? 'no verdict yet' : label[1]}`));
+  });
+  strip.append(h('span', { class: 'xsmall faint' },
+    `${concluded} of ${total} variants have a recorded conclusion`));
+  return strip;
+}
 
 function variantPanel(project, variant) {
   const wasOpen = loadOpenState(project.slug).has(variant.variant);
@@ -506,17 +566,23 @@ function runTable(project, variant) {
   });
 
   const selected = new Set();
+  const hasDuration = runs.some(r => typeof r.duration_seconds === 'number');
+  const hasStatus = new Set(runs.map(r => r.status || 'unknown')).size > 1;
   const headers = [
     { key: 'sel', label: '', plain: true },
     { key: 'run', label: 'Run' },
-    { key: 'status', label: 'Status' },
+    // A status column where every run says "completed" is 74 identical cells.
+    ...(hasStatus ? [{ key: 'status', label: 'Status' }] : []),
     ...cols.map(k => ({ key: `m:${k}`, label: k, num: true, metric: k })),
-    { key: 'duration', label: 'Duration', num: true },
+    ...(hasDuration ? [{ key: 'duration', label: 'Duration', num: true }] : []),
     { key: 'when', label: 'When' },
   ];
 
-  let sortKey = cols.length ? `m:${cols[0]}` : 'when';
-  let sortDesc = true;
+  // Chronological by default. Sorting by the first metric descending scrambles the
+  // one thing a sequence of runs is trying to say — an iteration 1..5 self-play loop
+  // rendered as 3,4,5,1,2, which is exactly where its story lives.
+  let sortKey = 'when';
+  let sortDesc = false;
 
   const thead = h('thead');
   const tbody = h('tbody');
@@ -584,7 +650,7 @@ function runTable(project, variant) {
       tr.append(h('td', {}, box));
       tr.append(h('td', {}, h('a', { href }, r.run_name || r.run_id),
         r.code && r.code.dirty ? h('span', { class: 'badge badge-warn', style: 'margin-left:6px', title: 'Uncommitted changes were present' }, 'dirty') : null));
-      tr.append(h('td', {}, statusBadge(r.status)));
+      if (hasStatus) tr.append(h('td', {}, statusBadge(r.status)));
       cols.forEach(k => {
         const v = (r.metrics || {})[k];
         const isBest = typeof v === 'number' && best[k] === v && runs.length > 1;
@@ -595,7 +661,7 @@ function runTable(project, variant) {
           title: isBest ? `best ${k} in this variant` : null,
         }, fmt[k](v), isBest ? ' ★' : ''));
       });
-      tr.append(h('td', { class: 'num dur' }, fmtDuration(r.duration_seconds)));
+      if (hasDuration) tr.append(h('td', { class: 'num dur' }, fmtDuration(r.duration_seconds)));
       const when = r.finished_at || r.started_at;
       tr.append(h('td', { class: 'faint nowrap', title: fmtDate(when) }, fmtAgo(when) || '—'));
       tbody.append(tr);
@@ -1025,6 +1091,193 @@ function configPanel(config) {
     h('div', { class: 'panel-body' }, dl));
 }
 
+/* ----------------------------------------------------------------- lineage */
+
+const RAIL_W = 14;      // horizontal spacing between rails
+const RAIL_H = 46;      // one node = one fixed-height row, like a git log line
+
+const svgNS = 'http://www.w3.org/2000/svg';
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS
+    ? document.createElementNS(svgNS, name)
+    : document.createElement(name);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v !== null && v !== undefined) el.setAttribute(k, String(v));
+  }
+  return el;
+}
+
+const railX = (col) => col * RAIL_W + RAIL_W / 2;
+
+/** The graph gutter for one row. Rows are a fixed height so the diagonals stay
+ *  true; an expanded row draws a separate straight-through continuation. */
+function railSvg(row, railCount) {
+  const w = Math.max(1, railCount) * RAIL_W;
+  const svg = svgEl('svg', {
+    class: 'rail', width: w, height: RAIL_H,
+    viewBox: `0 0 ${w} ${RAIL_H}`, 'aria-hidden': 'true', focusable: 'false',
+  });
+  const mid = RAIL_H / 2;
+  const x = railX(row.col);
+
+  const line = (x1, y1, x2, y2, cls) => svg.appendChild(svgEl('path', {
+    d: `M${x1},${y1} L${x2},${y2}`, class: cls || 'rail-line',
+  }));
+  // A fork or merge bends rather than cutting the corner, which reads far better
+  // once several rails are adjacent.
+  const bend = (fromX, fromY, toX, toY, cls) => svg.appendChild(svgEl('path', {
+    d: `M${fromX},${fromY} C${fromX},${(fromY + toY) / 2} ${toX},${(fromY + toY) / 2} ${toX},${toY}`,
+    class: cls || 'rail-line',
+  }));
+
+  // Rails that merely pass this row by.
+  row.through.forEach(i => line(railX(i), 0, railX(i), RAIL_H));
+
+  // This node's own rail: arriving from its parent above, continuing to its first
+  // child below.
+  if (row.parents.length) line(x, 0, x, mid);
+  if (!row.terminal) line(x, mid, x, RAIL_H);
+
+  // Extra parents converge into this node from their own rails.
+  row.merge_from.forEach(i => bend(railX(i), 0, x, mid, 'rail-line rail-merge'));
+
+  // Children beyond the first open new rails.
+  row.forks.forEach(i => { if (i !== row.col) bend(x, mid, railX(i), RAIL_H, 'rail-line'); });
+
+  // A branch that ends here gets an explicit cap, so a dead end reads as a
+  // decision rather than as missing data.
+  if (row.terminal) {
+    svg.appendChild(svgEl('path', {
+      d: `M${x - 4},${mid + 7} L${x + 4},${mid + 7}`, class: 'rail-line rail-cap',
+    }));
+  }
+
+  const shape = row.merge_from.length ? 'merge' : (row.role === 'control' ? 'control' : 'node');
+  if (shape === 'control') {
+    svg.appendChild(svgEl('rect', {
+      x: x - 4.5, y: mid - 4.5, width: 9, height: 9,
+      class: `rail-dot status-${row.status || 'active'}`,
+    }));
+  } else if (shape === 'merge') {
+    svg.appendChild(svgEl('path', {
+      d: `M${x},${mid - 5.5} L${x + 5.5},${mid} L${x},${mid + 5.5} L${x - 5.5},${mid} Z`,
+      class: `rail-dot status-${row.status || 'active'}`,
+    }));
+  } else {
+    svg.appendChild(svgEl('circle', {
+      cx: x, cy: mid, r: 4.5, class: `rail-dot status-${row.status || 'active'}`,
+    }));
+  }
+  return svg;
+}
+
+const STATUS_LABEL = {
+  adopted: ['badge-ok', 'adopted'],
+  refuted: ['badge-bad', 'did not work'],
+  superseded: ['badge-info', 'superseded'],
+  inconclusive: ['badge-warn', 'inconclusive'],
+  abandoned: ['badge-info', 'abandoned'],
+  paused: ['badge-warn', 'paused'],
+  done: ['badge-ok', 'done'],
+  active: ['badge-accent', 'active'],
+};
+
+const RELATION_LABEL = {
+  'derived-from': 'from', composes: 'composes', replicates: 'replicates',
+};
+
+function lineageView(project) {
+  const lineage = project.lineage;
+  const wrap = h('div', { class: 'lineage' });
+
+  if (!lineage || !lineage.rows || !lineage.rows.length) {
+    return empty('No variants yet');
+  }
+
+  if (lineage.dropped && lineage.dropped.length) {
+    wrap.append(h('div', { class: 'banner-error' },
+      `${lineage.dropped.length} lineage link(s) could not be drawn: `,
+      lineage.dropped.map(d => `${d.child} → ${d.parent} (${d.reason})`).join('; ')));
+  }
+
+  const provenanceBy = {};
+  ((project.provenance || {}).edges || []).forEach(e => {
+    (provenanceBy[e.child] = provenanceBy[e.child] || []).push(e.parent);
+  });
+
+  const list = h('ol', { class: 'lineage-rows', role: 'list' });
+  lineage.rows.forEach(row => list.append(lineageRow(project, row, lineage.rail_count, provenanceBy)));
+  wrap.append(list);
+
+  if (!lineage.available) {
+    // Day one for every project: the graph is a clean vertical spine plus a note
+    // saying how to make it branch. It must not look broken.
+    wrap.append(h('div', { class: 'empty mt-4' },
+      h('h3', {}, 'No idea-lineage recorded yet'),
+      h('p', { class: 'small' },
+        'Every variant is shown as its own starting point. To draw how the ideas ' +
+        'came to be, have the agent set ',
+        h('code', {}, 'variant_derived_from'), ' when it posts a new variant, or ' +
+        'hand-write ', h('code', {}, `data/projects/${project.slug}/lineage.json`), '.'),
+      (project.provenance && project.provenance.covered)
+        ? h('p', { class: 'small faint' },
+            `${project.provenance.covered} variant(s) already show checkpoint provenance ` +
+            'from their runs — that is a different graph, so it is shown as a chip rather ' +
+            'than a branch.')
+        : null));
+  }
+  return wrap;
+}
+
+function lineageRow(project, row, railCount, provenanceBy) {
+  const li = h('li', { class: `lineage-row status-${row.status || 'active'}` });
+  li.dataset.variant = row.variant;
+
+  const gutter = h('div', { class: 'lineage-gutter', style: `width:${railCount * RAIL_W}px` });
+  gutter.append(railSvg(row, railCount));
+
+  const status = STATUS_LABEL[row.status] || null;
+  const parents = row.parents || [];
+
+  const head = h('div', { class: 'lineage-head' },
+    h('a', {
+      class: 'lineage-name',
+      href: `#/p/${encodeURIComponent(project.slug)}/v/${encodeURIComponent(row.variant)}`,
+    }, row.variant),
+    status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
+    h('span', { class: 'badge badge-info' },
+      `${row.run_count} run${row.run_count === 1 ? '' : 's'}`),
+    row.last_activity
+      ? h('span', { class: 'xsmall faint nowrap', title: fmtDate(row.last_activity) },
+          fmtAgo(row.last_activity))
+      : null);
+
+  const meta = h('div', { class: 'lineage-meta' });
+  parents.forEach(p => meta.append(h('span', { class: 'chip' },
+    `${RELATION_LABEL[p.relation] || p.relation} ${p.variant}`)));
+  (provenanceBy[row.variant] || []).forEach(parent => meta.append(
+    // Checkpoint provenance is a different graph from idea lineage and must never
+    // be mistaken for it, so it is a chip and never a rail.
+    h('span', { class: 'chip chip-prov', title: 'checkpoint provenance, not idea lineage' },
+      `↥ warm-started from ${parent}`)));
+
+  const body = h('div', { class: 'lineage-body' },
+    head,
+    meta.childNodes.length ? meta : null,
+    row.description
+      ? h('div', { class: 'lineage-gist' }, truncate(row.description, 200))
+      : h('div', { class: 'lineage-gist faint' }, 'No description recorded.'),
+    row.conclusion
+      ? h('div', { class: 'lineage-verdict' },
+          h('span', { class: 'callout-label' }, 'concluded'),
+          truncate(row.conclusion, 200))
+      : null);
+
+  li.append(gutter, body);
+  return li;
+}
+
 /* ------------------------------------------------------------ metric curves */
 
 function curvesPanel(curves) {
@@ -1138,7 +1391,10 @@ export async function route() {
   app.setAttribute('aria-busy', 'true');
   try {
     if (parts[0] === 'p' && parts[2] === 'r' && parts[3]) await viewRun(app, parts[1], parts[3]);
-    else if (parts[0] === 'p' && parts[1]) await viewProject(app, parts[1]);
+    else if (parts[0] === 'p' && parts[2] === 'v' && parts[3]) {
+      // A link straight to one variant: show the tables and open just that one.
+      await viewProject(app, parts[1], 'runs', parts[3]);
+    } else if (parts[0] === 'p' && parts[1]) await viewProject(app, parts[1], parts[2]);
     else await viewProjects(app);
     restoreScroll(location.hash);
   } catch (err) {

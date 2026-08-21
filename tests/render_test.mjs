@@ -74,7 +74,7 @@ console.log('\nproject list (#/)');
   const text = app.textContent;
   check('renders the project name', text.includes('Fixture Project'));
   check('renders the project description', text.includes('long-running fixture'));
-  check('shows a variant blurb on the card', text.includes('deeper encoder'));
+  check('shows a variant blurb on the card', text.includes('Increase encoder depth'));
   check('shows the cross-project recent-activity feed',
     text.includes('Recent activity across all projects'));
   check('recent feed lists a run from the second project', text.includes('Second Project'));
@@ -88,9 +88,29 @@ console.log('\nproject list (#/)');
     `found ${cards.length} cards`);
 }
 
-console.log('\nproject detail (#/p/fixture-project)');
+console.log('\nproject story (#/p/fixture-project)');
 {
   const { app } = await renderAt('#/p/fixture-project');
+  const t = app.textContent;
+  check('leads with the story, not a metric table',
+    app.findAll(e => e.tagName === 'TABLE').length === 0);
+  const hasClass = (e, c) => String(e.className || '').split(/\s+/).includes(c);
+  check('shows every variant as a lineage row',
+    app.findAll(e => hasClass(e, 'lineage-row')).length === 2);
+  check('draws a rail per row', app.findAll(e => hasClass(e, 'rail')).length === 2);
+  check('every row carries a status dot',
+    app.findAll(e => hasClass(e, 'rail-dot')).length === 2);
+  check('shows the idea in the row', t.includes('Increase encoder depth'));
+  check('shows the conclusion in the row', t.includes('Did not help'));
+  check('says plainly when no lineage is recorded', t.includes('No idea-lineage recorded yet'));
+  check('offers a verdict tally', t.includes('have a recorded conclusion'));
+  check('offers both tabs', !!app.find(e => e.className.includes('tab') && e.textContent === 'Story')
+    && !!app.find(e => e.tagName === 'A' && e.textContent.startsWith('Runs (')));
+}
+
+console.log('\nproject runs tab (#/p/fixture-project/runs)');
+{
+  const { app } = await renderAt('#/p/fixture-project/runs');
   let text = app.textContent;
   check('renders the variant description', text.includes('Increase encoder depth'));
   check('the idea is readable while collapsed', (() => {
@@ -163,7 +183,7 @@ console.log('\nrun detail');
 
 console.log('\ncomparing runs');
 {
-  const { app } = await renderAt('#/p/fixture-project');
+  const { app } = await renderAt('#/p/fixture-project/runs');
   app.findAll(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all')[0].dispatch('click');
   for (let i = 0; i < 10; i++) await flush();
   const boxes = app.findAll(e => e.tagName === 'INPUT' && e.getAttribute('type') === 'checkbox');
