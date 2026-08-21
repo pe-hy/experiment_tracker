@@ -797,39 +797,51 @@ table.tbl td.count { color: var(--text-faint); }
   border-bottom: 1px solid var(--surface);
 }
 
-/* --- 18. Lineage rails ------------------------------------------------- */
+/* --- 18. Lineage tree --------------------------------------------------- */
 
-:root { --rail: var(--line-strong); --rail-active: var(--accent); }
+:root { --rail: var(--line-strong); }
 
 .lineage-rows { list-style: none; margin: 0; padding: 0; }
 
 .lineage-row {
   display: flex;
-  align-items: flex-start;
-  gap: var(--s3);
+  align-items: stretch;
   border-bottom: 1px solid var(--line);
 }
 .lineage-row:last-child { border-bottom: none; }
 .lineage-row:hover { background: var(--surface-2); }
 
-.lineage-gutter { flex: none; align-self: stretch; display: flex; flex-direction: column; }
-.lineage-gutter .rail-cont { flex: 1 1 auto; min-height: 0; height: auto; }
-.lineage-gutter .rail { display: block; overflow: visible; }
-
-.rail-line {
-  fill: none;
-  stroke: var(--rail);
-  stroke-width: 1.5;
-  stroke-linecap: round;
+/* One fixed-width cell per ancestor level; guides span the full row height so
+   variable-height prose never breaks the vertical. */
+.lg-tree { flex: none; display: flex; align-items: stretch; }
+.lg-cell { width: 22px; position: relative; flex: none; }
+.lg-guide::before {
+  content: ''; position: absolute; left: 10px; top: 0; bottom: 0;
+  border-left: 2px solid var(--rail);
 }
-.rail-cap { stroke-width: 2; }
-.rail-dot { fill: var(--surface); stroke: var(--rail); stroke-width: 2; }
-/* An idea that was tested and did not work stays at full contrast — it is a
-   result, not an absence — but it is drawn hollow so the eye can find it. */
-.rail-dot.status-refuted { stroke: var(--bad); fill: var(--bg); }
-.rail-dot.status-adopted { stroke: var(--ok); fill: var(--ok); }
-.rail-dot.status-superseded { stroke: var(--text-faint); fill: var(--surface-3); }
-.rail-dot.status-active { stroke: var(--rail); fill: var(--surface); }
+.lg-elbow::before {
+  content: ''; position: absolute; left: 10px; top: 0; height: calc(var(--s3) + 0.62em);
+  border-left: 2px solid var(--rail);
+}
+.lg-elbow::after {
+  content: ''; position: absolute; left: 10px; top: calc(var(--s3) + 0.62em);
+  width: 12px; border-top: 2px solid var(--rail);
+}
+.lg-tee::before { height: auto; bottom: 0; }
+.lg-dotcell { width: 18px; }
+.lg-dot {
+  position: absolute; left: 2px; top: calc(var(--s3) + 0.62em);
+  transform: translateY(-50%);
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--rail); background: var(--surface);
+}
+.lg-dot.lg-control { border-radius: 3px; }
+.lg-dot.status-refuted { border-color: var(--bad); background: var(--bg); }
+.lg-dot.status-adopted { border-color: var(--ok); background: var(--ok); }
+.lg-dot.status-superseded { border-color: var(--text-faint); background: var(--surface-3); }
+.lg-dot.status-inconclusive, .lg-dot.status-paused { border-color: var(--warn); background: var(--surface); }
+.lg-dot.status-done { border-color: var(--ok); background: var(--surface); }
+.lg-dot.status-active { border-color: var(--accent); background: var(--surface); }
 
 .lineage-body { flex: 1 1 auto; min-width: 0; padding: var(--s3) 0; }
 .lineage-head {
@@ -858,7 +870,6 @@ table.tbl td.count { color: var(--text-faint); }
 .lineage-verdict .callout-label { display: block; }
 
 @media (max-width: 720px) {
-  .lineage-gutter { display: none; }
 }
 
 /* --- 19. Cross-variant compare bar ------------------------------------- */
@@ -876,3 +887,6 @@ table.tbl td.count { color: var(--text-faint); }
   border-radius: var(--radius);
 }
 .btn[disabled] { opacity: .55; cursor: default; }
+
+/* Lineage: the primary parent's note rendered as prose, not a parent-name echo. */
+.chip-why { font-style: italic; color: var(--text-faint); border-style: dashed; }

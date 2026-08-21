@@ -147,9 +147,9 @@ console.log('\nproject story (#/p/fixture-project)');
   const hasClass = (e, c) => String(e.className || '').split(/\s+/).includes(c);
   check('shows every variant as a lineage row',
     app.findAll(e => hasClass(e, 'lineage-row')).length === 2);
-  check('draws a rail per row', app.findAll(e => hasClass(e, 'rail')).length === 2);
+  check('draws a tree gutter per row', app.findAll(e => hasClass(e, 'lg-tree')).length === 2);
   check('every row carries a status dot',
-    app.findAll(e => hasClass(e, 'rail-dot')).length === 2);
+    app.findAll(e => hasClass(e, 'lg-dot')).length === 2);
   check('shows the idea in the row', t.includes('Increase encoder depth'));
   check('shows the conclusion in the row', t.includes('Did not help'));
   check('says plainly when no lineage is recorded', t.includes('No idea-lineage recorded yet'));

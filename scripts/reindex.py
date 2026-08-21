@@ -207,8 +207,9 @@ def collect_variants(runs):
         entry["last_activity"] = _last_activity(entry["runs"])
         entry["first_activity"] = _first_activity(entry["runs"])
         variants.append(entry)
-    # Oldest first, matching the lineage view: this is the order the ideas happened
-    # in, and having the two tabs disagree about ordering is disorienting.
+    # Oldest first as the fallback; once lineage edges exist the caller re-sorts
+    # both this list and the lineage view into the same descent order, so the two
+    # tabs can never disagree about ordering.
     variants.sort(key=lambda v: (v["first_activity"] or "~", v["variant"]))
     return variants
 
@@ -319,82 +320,36 @@ def build_lineage(variants, curated):
         depth_memo[node] = best
         return best
 
-    # Topological, depth-first, so a chain of ideas stays contiguous on one rail.
-    emitted, order = set(), []
-    roots = sorted([v for v in slugs if not parents.get(v)],
+    # An indented tree, not a subway map (owner UX verdict 2026-08-21): each
+    # variant nests under its PRIMARY parent -- the first declared edge -- and
+    # every further parent stays visible as a chip on the row, so the eye reads
+    # descent top-to-bottom the way it reads a file tree. Multi-parent nodes
+    # (composes) are therefore placed once, under the parent that mattered most.
+    primary = {c: edges[0]["variant"] for c, edges in parents.items()}
+    tree_children = {}
+    for child, par in primary.items():
+        tree_children.setdefault(par, []).append(child)
+    for k in tree_children:
+        tree_children[k].sort(key=lambda c: (order_seen.get(c, 0), c))
+    roots = sorted([v for v in slugs if v not in primary],
                    key=lambda v: (order_seen.get(v, 0), v))
-    stack = list(roots)
-    remaining = set(slugs)
-    while remaining:
-        pick = None
-        for i, node in enumerate(stack):
-            if node in remaining and all(e["variant"] in emitted for e in parents.get(node, ())):
-                pick = node
-                stack.pop(i)
-                break
-        if pick is None:
-            ready = [n for n in remaining
-                     if all(e["variant"] in emitted for e in parents.get(n, ()))]
-            if not ready:
-                # Unreachable after cycle refusal; degrade to a flat list rather than spin.
-                for node in sorted(remaining, key=lambda n: (order_seen.get(n, 0), n)):
-                    order.append(node)
-                    emitted.add(node)
-                remaining.clear()
-                break
-            pick = min(ready, key=lambda n: (order_seen.get(n, 0), n))
-        if pick in emitted:
-            continue
-        order.append(pick)
-        emitted.add(pick)
-        remaining.discard(pick)
-        stack = [c["variant"] for c in children.get(pick, ())] + stack
-
-    # Rails: one per pending edge, not per pending node. That is what makes a
-    # multi-parent variant render as a visible merge instead of quietly reusing
-    # a single rail and hiding the composition.
-    rails = []
-
-    def first_free():
-        for i, r in enumerate(rails):
-            if r is None:
-                return i
-        rails.append(None)
-        return len(rails) - 1
 
     rows = []
-    for node in order:
-        incoming = [i for i, r in enumerate(rails) if r == node]
-        col = incoming[0] if incoming else first_free()
-        merge_from = incoming[1:]
-        for i in incoming:
-            rails[i] = None
-        if col < len(rails):
-            rails[col] = None
-        through = [i for i, r in enumerate(rails) if r is not None and i != col]
 
-        kids = children.get(node, [])
-        forks = []
-        for j, kid in enumerate(kids):
-            i = col if j == 0 else first_free()
-            while i >= len(rails):
-                rails.append(None)
-            rails[i] = kid["variant"]
-            forks.append(i)
-        while rails and rails[-1] is None:
-            rails.pop()
-
+    def emit(node, indent, guides, last):
         variant = by_slug[node]
+        kids = tree_children.get(node, [])
         rows.append({
             "variant": node,
-            "col": col,
+            "indent": indent,
+            "guides": list(guides),      # one flag per ancestor level: does that
+                                         # ancestor have later siblings (draw a rail)?
+            "last": last,                # last child of its parent: elbow, not tee
             "depth": depth(node),
-            "merge_from": merge_from,
-            "through": through,
-            "forks": forks,
-            "terminal": not kids,
+            "primary_parent": primary.get(node),
+            "terminal": not kids and not children.get(node),
             "parents": [dict(e) for e in parents.get(node, ())],
-            "children": [dict(c) for c in kids],
+            "children": [dict(c) for c in children.get(node, ())],
             "status": variant.get("status"),
             "role": variant.get("role"),
             "run_count": variant.get("run_count", 0),
@@ -402,18 +357,34 @@ def build_lineage(variants, curated):
             "conclusion": variant.get("conclusion", ""),
             "last_activity": variant.get("last_activity"),
         })
+        for j, kid in enumerate(kids):
+            emit(kid, indent + 1, guides + [not last] if indent else guides + [False],
+                 j == len(kids) - 1)
 
-    rail_count = 1
-    for row in rows:
-        rail_count = max(rail_count, row["col"] + 1,
-                         *(x + 1 for x in (row["through"] + row["forks"] + row["merge_from"]) or [0]))
+    for i, root in enumerate(roots):
+        emit(root, 0, [], i == len(roots) - 1)
+    # A node whose primary parent was dropped (unknown slug / cycle refusal)
+    # never enters the tree; append it flat rather than lose it.
+    placed = set(r["variant"] for r in rows)
+    for node in sorted(slugs - placed, key=lambda v: (order_seen.get(v, 0), v)):
+        variant = by_slug[node]
+        rows.append({
+            "variant": node, "indent": 0, "guides": [], "last": True,
+            "depth": depth(node), "primary_parent": None,
+            "terminal": True, "parents": [dict(e) for e in parents.get(node, ())],
+            "children": [dict(c) for c in children.get(node, ())],
+            "status": variant.get("status"), "role": variant.get("role"),
+            "run_count": variant.get("run_count", 0),
+            "description": variant.get("description", ""),
+            "conclusion": variant.get("conclusion", ""),
+            "last_activity": variant.get("last_activity"),
+        })
 
     edge_count = sum(len(v) for v in parents.values())
     return {
         "available": edge_count > 0,
         "edge_count": edge_count,
         "node_count": len(rows),
-        "rail_count": rail_count,
         "sources": sources,
         "dropped": dropped,
         "rows": rows,
@@ -556,6 +527,12 @@ def build_project(project_dir, slug):
     }
     curated = read_curated(project_dir)
     project["lineage"] = build_lineage(variants, curated)
+    if project["lineage"]["available"]:
+        # The Variants tab follows the lineage's descent order (owner UX verdict
+        # 2026-08-21): an idea appears right under the idea it came from.
+        pos = {r["variant"]: i for i, r in enumerate(project["lineage"]["rows"])}
+        variants.sort(key=lambda v: pos.get(v["variant"], 10 ** 6))
+        project["variants"] = variants
     project["provenance"] = build_provenance(runs, variants)
     return project, runs
 

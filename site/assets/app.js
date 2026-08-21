@@ -1227,83 +1227,23 @@ function configPanel(config) {
 
 /* ----------------------------------------------------------------- lineage */
 
-const RAIL_W = 14;      // horizontal spacing between rails
-const RAIL_H = 46;      // one node = one fixed-height row, like a git log line
-
-const svgNS = 'http://www.w3.org/2000/svg';
-
-function svgEl(name, attrs) {
-  const el = document.createElementNS
-    ? document.createElementNS(svgNS, name)
-    : document.createElement(name);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v !== null && v !== undefined) el.setAttribute(k, String(v));
+/** Indented idea tree (owner UX verdict 2026-08-21): a variant nests under the
+ *  first parent it declared; extra parents stay as chips on the row. The gutter
+ *  is plain nested guides -- the shape a file tree trained every reader on --
+ *  instead of git-log rails, whose crossings were unreadable past ~10 variants. */
+function treeGutter(row) {
+  const g = h('span', { class: 'lg-tree', 'aria-hidden': 'true' });
+  (row.guides || []).forEach(on =>
+    g.append(h('span', { class: `lg-cell${on ? ' lg-guide' : ''}` })));
+  if ((row.indent || 0) > 0) {
+    g.append(h('span', { class: `lg-cell lg-elbow${row.last ? '' : ' lg-tee'}` }));
   }
-  return el;
-}
-
-const railX = (col) => col * RAIL_W + RAIL_W / 2;
-
-/** The graph gutter for one row. Rows are a fixed height so the diagonals stay
- *  true; an expanded row draws a separate straight-through continuation. */
-function railSvg(row, railCount) {
-  const w = Math.max(1, railCount) * RAIL_W;
-  const svg = svgEl('svg', {
-    class: 'rail', width: w, height: RAIL_H,
-    viewBox: `0 0 ${w} ${RAIL_H}`, 'aria-hidden': 'true', focusable: 'false',
+  const dot = h('span', {
+    class: `lg-dot status-${row.status || 'active'}${row.role === 'control' ? ' lg-control' : ''}`,
+    title: row.role ? `role: ${row.role}` : null,
   });
-  const mid = RAIL_H / 2;
-  const x = railX(row.col);
-
-  const line = (x1, y1, x2, y2, cls) => svg.appendChild(svgEl('path', {
-    d: `M${x1},${y1} L${x2},${y2}`, class: cls || 'rail-line',
-  }));
-  // A fork or merge bends rather than cutting the corner, which reads far better
-  // once several rails are adjacent.
-  const bend = (fromX, fromY, toX, toY, cls) => svg.appendChild(svgEl('path', {
-    d: `M${fromX},${fromY} C${fromX},${(fromY + toY) / 2} ${toX},${(fromY + toY) / 2} ${toX},${toY}`,
-    class: cls || 'rail-line',
-  }));
-
-  // Rails that merely pass this row by.
-  row.through.forEach(i => line(railX(i), 0, railX(i), RAIL_H));
-
-  // This node's own rail: arriving from its parent above, continuing to its first
-  // child below.
-  if (row.parents.length) line(x, 0, x, mid);
-  if (!row.terminal) line(x, mid, x, RAIL_H);
-
-  // Extra parents converge into this node from their own rails.
-  row.merge_from.forEach(i => bend(railX(i), 0, x, mid, 'rail-line rail-merge'));
-
-  // Children beyond the first open new rails.
-  row.forks.forEach(i => { if (i !== row.col) bend(x, mid, railX(i), RAIL_H, 'rail-line'); });
-
-  // A branch that ends here gets an explicit cap, so a dead end reads as a
-  // decision rather than as missing data.
-  if (row.terminal) {
-    svg.appendChild(svgEl('path', {
-      d: `M${x - 4},${mid + 7} L${x + 4},${mid + 7}`, class: 'rail-line rail-cap',
-    }));
-  }
-
-  const shape = row.merge_from.length ? 'merge' : (row.role === 'control' ? 'control' : 'node');
-  if (shape === 'control') {
-    svg.appendChild(svgEl('rect', {
-      x: x - 4.5, y: mid - 4.5, width: 9, height: 9,
-      class: `rail-dot status-${row.status || 'active'}`,
-    }));
-  } else if (shape === 'merge') {
-    svg.appendChild(svgEl('path', {
-      d: `M${x},${mid - 5.5} L${x + 5.5},${mid} L${x},${mid + 5.5} L${x - 5.5},${mid} Z`,
-      class: `rail-dot status-${row.status || 'active'}`,
-    }));
-  } else {
-    svg.appendChild(svgEl('circle', {
-      cx: x, cy: mid, r: 4.5, class: `rail-dot status-${row.status || 'active'}`,
-    }));
-  }
-  return svg;
+  g.append(h('span', { class: 'lg-cell lg-dotcell' }, dot));
+  return g;
 }
 
 const STATUS_LABEL = {
@@ -1341,7 +1281,7 @@ function lineageView(project) {
   });
 
   const list = h('ol', { class: 'lineage-rows', role: 'list' });
-  lineage.rows.forEach(row => list.append(lineageRow(project, row, lineage.rail_count, provenanceBy)));
+  lineage.rows.forEach(row => list.append(lineageRow(project, row, provenanceBy)));
   wrap.append(list);
 
   if (!lineage.available) {
@@ -1364,29 +1304,9 @@ function lineageView(project) {
   return wrap;
 }
 
-function lineageRow(project, row, railCount, provenanceBy) {
+function lineageRow(project, row, provenanceBy) {
   const li = h('li', { class: `lineage-row status-${row.status || 'active'}` });
   li.dataset.variant = row.variant;
-
-  const gutter = h('div', { class: 'lineage-gutter', style: `width:${railCount * RAIL_W}px` });
-  gutter.append(railSvg(row, railCount));
-
-  // The node glyph is drawn at a fixed height, but a row is as tall as its prose.
-  // Without this continuation every rail that must carry on to the next row would
-  // stop after 46px and leave a gap.
-  const below = [...row.through, ...row.forks, ...(row.terminal ? [] : [row.col])];
-  if (below.length) {
-    const w = Math.max(1, railCount) * RAIL_W;
-    const cont = svgEl('svg', {
-      class: 'rail rail-cont', width: w, viewBox: `0 0 ${w} 10`,
-      preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false',
-    });
-    [...new Set(below)].forEach(i => cont.appendChild(svgEl('path', {
-      d: `M${railX(i)},0 L${railX(i)},10`, class: 'rail-line',
-      'vector-effect': 'non-scaling-stroke',
-    })));
-    gutter.append(cont);
-  }
 
   const status = STATUS_LABEL[row.status] || null;
   const parents = row.parents || [];
@@ -1405,8 +1325,21 @@ function lineageRow(project, row, railCount, provenanceBy) {
       : null);
 
   const meta = h('div', { class: 'lineage-meta' });
-  parents.forEach(p => meta.append(h('span', { class: 'chip' },
-    `${RELATION_LABEL[p.relation] || p.relation} ${p.variant}`)));
+  // The primary derived-from parent is already told by the indentation, so its
+  // chip would repeat the tree; if the edge carries a note, the note (the "why")
+  // is the part worth showing. Composes/replicates and extra parents keep full
+  // chips -- those are exactly what indentation cannot express.
+  parents.forEach((p, i) => {
+    const primaryDerived = i === 0 && p.variant === row.primary_parent
+      && p.relation === 'derived-from';
+    if (primaryDerived) {
+      if (p.note) meta.append(h('span', { class: 'chip chip-why', title: `why: ${p.note}` },
+        truncate(p.note, 70)));
+      return;
+    }
+    meta.append(h('span', { class: 'chip', title: p.note ? `why: ${p.note}` : null },
+      `${RELATION_LABEL[p.relation] || p.relation} ${p.variant}`));
+  });
   (provenanceBy[row.variant] || []).forEach(parent => meta.append(
     // Checkpoint provenance is a different graph from idea lineage and must never
     // be mistaken for it, so it is a chip and never a rail.
@@ -1425,7 +1358,7 @@ function lineageRow(project, row, railCount, provenanceBy) {
           truncate(row.conclusion, 200))
       : null);
 
-  li.append(gutter, body);
+  li.append(treeGutter(row), body);
   return li;
 }
 
