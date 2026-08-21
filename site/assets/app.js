@@ -286,30 +286,110 @@ async function viewProject(app, slug) {
     return;
   }
 
-  // Only the most recently active variant is expanded: ten open variants with thirty
-  // runs each is a wall, not a view.
-  project.variants.forEach((v, i) => app.append(variantPanel(project, v, i === 0)));
+  // Everything starts collapsed. Twenty-three variants expanded is a wall of tables
+  // you have to scroll past to find anything; collapsed, the same page is a readable
+  // list of ideas. Which ones you opened is remembered per project.
+  const panels = project.variants.map(v => variantPanel(project, v));
+
+  const setAll = (open) => panels.forEach(p => {
+    p.open = open;
+    if (open) { p.setAttribute('open', ''); p.ensureTable(); }
+    else p.removeAttribute('open');
+    saveOpenState(project.slug, p.dataset.variant, open);
+  });
+
+  app.append(h('div', { class: 'toolbar' },
+    h('span', { class: 'small muted' },
+      `${project.variants.length} variant${project.variants.length === 1 ? '' : 's'}`),
+    h('span', { class: 'topbar-spacer' }),
+    h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => setAll(true) }, 'Expand all'),
+    h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => setAll(false) }, 'Collapse all')));
+
+  panels.forEach(p => app.append(p));
 }
 
-function variantPanel(project, variant, open) {
-  const panel = h('details', { class: 'panel', open: open ? '' : null });
+/* Which variants a reader had open is a property of how they were reading, not of the
+ * data, so it lives in localStorage rather than the URL. */
+function openStateKey(projectSlug) { return `open:${projectSlug}`; }
+
+function loadOpenState(projectSlug) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(openStateKey(projectSlug)) || '[]'));
+  } catch (e) { return new Set(); }
+}
+
+function saveOpenState(projectSlug, variant, open) {
+  try {
+    const set = loadOpenState(projectSlug);
+    if (open) set.add(variant); else set.delete(variant);
+    localStorage.setItem(openStateKey(projectSlug), JSON.stringify([...set]));
+  } catch (e) { /* private mode; the page still works, it just forgets */ }
+}
+
+const VARIANT_STATUS = {
+  adopted: ['badge-ok', 'adopted'],
+  abandoned: ['badge-info', 'abandoned'],
+  paused: ['badge-warn', 'paused'],
+  done: ['badge-ok', 'done'],
+  active: ['badge-accent', 'active'],
+};
+
+function variantPanel(project, variant) {
+  const wasOpen = loadOpenState(project.slug).has(variant.variant);
+  const panel = h('details', { class: 'panel variant', open: wasOpen ? '' : null });
+  panel.dataset.variant = variant.variant;
+
+  const status = VARIANT_STATUS[variant.status];
+  const runsLabel = `${variant.run_count} run${variant.run_count === 1 ? '' : 's'}`;
+
+  // The summary is two rows: identity on top, the idea underneath. Collapsed, that is
+  // still enough to know what this variant was for — which is the whole point of the
+  // tracker, and was previously hidden until you expanded it.
   panel.append(h('summary', {},
-    h('span', {}, variant.variant_name || variant.variant),
-    h('span', { class: 'badge badge-info' }, `${variant.run_count} run${variant.run_count === 1 ? '' : 's'}`),
-    variant.conclusion ? h('span', { class: 'badge badge-ok', title: variant.conclusion }, 'concluded') : null,
-    variant.status === 'abandoned' ? h('span', { class: 'badge badge-info' }, 'abandoned') : null,
-    h('span', { class: 'topbar-spacer' }),
-    variant.last_activity && h('span', { class: 'xsmall faint nowrap' }, fmtAgo(variant.last_activity))));
+    h('div', { class: 'variant-head' },
+      h('span', { class: 'variant-name' }, variant.variant_name || variant.variant),
+      status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
+      variant.conclusion ? h('span', { class: 'badge badge-ok' }, 'concluded') : null,
+      h('span', { class: 'flex-spacer' }),
+      h('span', { class: 'badge badge-info' }, runsLabel),
+      variant.last_activity
+        ? h('span', { class: 'xsmall faint nowrap', title: fmtDate(variant.last_activity) },
+            fmtAgo(variant.last_activity))
+        : null),
+    h('div', { class: 'variant-gist' },
+      variant.description
+        ? truncate(variant.description, 190)
+        : h('span', { class: 'faint' }, 'No description recorded for this variant.'))));
 
   const body = h('div', { class: 'panel-body' });
   body.append(description(variant.description, 'variant'));
   if (variant.conclusion) {
-    body.append(h('div', { class: 'mt-4' },
-      h('div', { class: 'xsmall muted', style: 'text-transform:uppercase;letter-spacing:.04em' }, 'Conclusion'),
+    body.append(h('div', { class: 'callout callout-ok mt-4' },
+      h('div', { class: 'callout-label' }, 'What we concluded'),
       description(variant.conclusion, 'conclusion')));
   }
   panel.append(body);
-  panel.append(runTable(project, variant));
+
+  // Build the run table only when the variant is actually opened. Eagerly building
+  // twenty-odd tables costs thousands of nodes nobody looks at, and the browser pays
+  // for all of them on first paint.
+  const tableSlot = h('div');
+  panel.append(tableSlot);
+  let built = false;
+  const buildTable = () => {
+    if (built) return;
+    built = true;
+    tableSlot.append(runTable(project, variant));
+  };
+  panel.addEventListener('toggle', () => {
+    if (panel.open) buildTable();
+    saveOpenState(project.slug, variant.variant, panel.open);
+  });
+  // Expand-all sets the attribute directly; browsers fire `toggle` for that but a
+  // headless harness need not, so expose the builder rather than rely on the event.
+  panel.ensureTable = buildTable;
+  if (wasOpen) buildTable();
+
   return panel;
 }
 
@@ -939,6 +1019,28 @@ function setBuiltAt(builtAt) {
 
 // Exported so the test harness can drive each view directly instead of relying on
 // module re-evaluation. Browsers ignore the export.
+/* Scroll memory. Going into a run and coming back should land you where you were,
+ * which matters most on a project page with twenty-odd variants. Positions are keyed
+ * by hash: a view you have visited before is restored, a view you have not is shown
+ * from the top. */
+const scrollPositions = new Map();
+
+function rememberScroll(hash) {
+  scrollPositions.set(hash || '#/', window.scrollY || 0);
+}
+
+function restoreScroll(hash) {
+  const y = scrollPositions.get(hash || '#/');
+  // Two frames: the first lets layout settle after the DOM swap, the second runs
+  // after the browser's own scroll-anchoring has had its say.
+  const apply = () => window.scrollTo(0, y || 0);
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(apply));
+  } else {
+    apply();
+  }
+}
+
 export async function route() {
   const app = $('#app');
   const hash = location.hash.replace(/^#\/?/, '');
@@ -949,7 +1051,7 @@ export async function route() {
     if (parts[0] === 'p' && parts[2] === 'r' && parts[3]) await viewRun(app, parts[1], parts[3]);
     else if (parts[0] === 'p' && parts[1]) await viewProject(app, parts[1]);
     else await viewProjects(app);
-    window.scrollTo(0, 0);
+    restoreScroll(location.hash);
   } catch (err) {
     clear(app);
     app.append(errorBanner(err));
@@ -977,6 +1079,25 @@ function initTheme() {
   });
 }
 
-window.addEventListener('hashchange', route);
+// hashchange carries the URL we are leaving, which is the only reliable moment to
+// record where the reader had scrolled to.
+window.addEventListener('hashchange', (event) => {
+  try {
+    if (event && event.oldURL) {
+      const i = event.oldURL.indexOf('#');
+      rememberScroll(i >= 0 ? event.oldURL.slice(i) : '#/');
+    }
+  } catch (e) { /* a missing oldURL only costs us one restored position */ }
+  route();
+});
+
+// Stop the browser also trying to restore scroll; two mechanisms fighting is worse
+// than either alone.
+try {
+  if (window.history && 'scrollRestoration' in window.history) {
+    window.history.scrollRestoration = 'manual';
+  }
+} catch (e) { /* not supported; ours still works */ }
+
 initTheme();
 route();

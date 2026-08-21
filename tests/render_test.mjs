@@ -80,8 +80,27 @@ console.log('\nproject list (#/)');
 console.log('\nproject detail (#/p/fixture-project)');
 {
   const { app } = await renderAt('#/p/fixture-project');
-  const text = app.textContent;
+  let text = app.textContent;
   check('renders the variant description', text.includes('Increase encoder depth'));
+  check('the idea is readable while collapsed', (() => {
+    const gist = app.find(e => e.className.includes('variant-gist'));
+    return !!gist && gist.textContent.includes('Increase encoder depth');
+  })(), 'explanations must not be hidden behind a click');
+  check('nothing is expanded by default', (() => {
+    const panels = app.findAll(e => e.tagName === 'DETAILS' && e.className.includes('variant'));
+    return panels.length > 0 && panels.every(p => !p.hasAttribute('open'));
+  })(), 'a page of expanded variants is a wall, not a view');
+  check('run tables are not built until opened',
+    app.findAll(e => e.tagName === 'TABLE').length === 0,
+    'lazy tables keep the first paint cheap');
+  check('offers expand/collapse all',
+    !!app.find(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all'));
+
+  // Everything below concerns the run table, so open the variants first.
+  app.findAll(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all')[0].dispatch('click');
+  for (let i = 0; i < 10; i++) await flush();
+  text = app.textContent;
+  check('expanding builds the run tables', app.findAll(e => e.tagName === 'TABLE').length > 0);
   check('renders the variant conclusion', text.includes('Did not help'));
   check('marks a concluded variant', text.includes('concluded'));
   check('shows the run table with metric columns', text.includes('val_accuracy'));
@@ -93,10 +112,6 @@ console.log('\nproject detail (#/p/fixture-project)');
   })(), 'metric_goals says val_loss is min');
   check('offers CSV export', text.includes('Copy CSV'));
   check('offers LaTeX export', text.includes('Copy LaTeX'));
-  check('only the newest variant starts expanded', (() => {
-    const panels = app.findAll(e => e.tagName === 'DETAILS' && e.className.includes('panel'));
-    return panels.filter(p => p.hasAttribute('open')).length <= 1;
-  })());
 }
 
 console.log('\nrun detail');
@@ -122,6 +137,8 @@ console.log('\nrun detail');
 console.log('\ncomparing runs');
 {
   const { app } = await renderAt('#/p/fixture-project');
+  app.findAll(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all')[0].dispatch('click');
+  for (let i = 0; i < 10; i++) await flush();
   const boxes = app.findAll(e => e.tagName === 'INPUT' && e.getAttribute('type') === 'checkbox');
   check('every run row has a selection checkbox', boxes.length >= 2, `found ${boxes.length}`);
   boxes.slice(0, 2).forEach(b => { b.checked = true; b.dispatch('change'); });

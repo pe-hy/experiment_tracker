@@ -80,6 +80,7 @@
   --shadow-lg: 0 12px 32px rgba(20, 20, 18, 0.16);
 
   --maxw: 1240px;
+  --topbar-h: 52px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -198,6 +199,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 code, pre, .mono { font-family: var(--font-mono); font-size: 0.92em; }
 
+:target { scroll-margin-top: calc(var(--topbar-h) + var(--s4)); }
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -226,7 +229,7 @@ code, pre, .mono { font-family: var(--font-mono); font-size: 0.92em; }
   display: flex;
   align-items: center;
   gap: var(--s4);
-  height: 52px;
+  height: var(--topbar-h);
 }
 .brand {
   display: flex;
@@ -243,7 +246,7 @@ code, pre, .mono { font-family: var(--font-mono); font-size: 0.92em; }
   flex: none;
   color: var(--accent);
 }
-.topbar-spacer { flex: 1 1 auto; }
+.topbar-spacer, .flex-spacer { flex: 1 1 auto; min-width: 0; }
 
 main { padding: var(--s6) 0 var(--s8); }
 
@@ -432,7 +435,7 @@ table.tbl th, table.tbl td {
   white-space: nowrap;
 }
 table.tbl thead th {
-  position: sticky; top: 0; z-index: 2;
+  position: sticky; top: var(--topbar-h); z-index: 2;
   background: var(--surface-2);
   color: var(--text-muted);
   font-weight: 580;
@@ -460,7 +463,7 @@ table.tbl .cell-wrap { white-space: normal; min-width: 240px; }
   gap: 2px var(--s4);
   font-size: var(--fs-sm);
 }
-.kv dt { color: var(--text-muted); padding: 3px 0; }
+.kv dt { color: var(--text-muted); padding: 3px 0; overflow-wrap: anywhere; }
 .kv dd { margin: 0; padding: 3px 0; font-family: var(--font-mono); word-break: break-word; }
 
 /* --- 9. Panels / sections --------------------------------------------- */
@@ -474,6 +477,7 @@ table.tbl .cell-wrap { white-space: normal; min-width: 240px; }
 }
 .panel-head {
   display: flex; align-items: center; gap: var(--s3);
+  flex-wrap: wrap;
   padding: var(--s3) var(--s4);
   border-bottom: 1px solid var(--line);
   background: var(--surface-2);
@@ -502,6 +506,60 @@ details.panel > summary::before {
 }
 details.panel[open] > summary::before { transform: rotate(90deg); }
 details.panel[open] > summary { border-bottom: 1px solid var(--line); }
+details.panel > summary:hover { background: var(--surface-3); }
+
+/* A variant summary carries two rows: identity, then the idea itself. Grid rather
+   than flex so the disclosure triangle stays aligned to the first line while the
+   description wraps freely underneath. */
+details.panel.variant > summary {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: start;
+  gap: 3px var(--s3);
+  font-weight: 400;
+}
+details.panel.variant > summary::before { margin-top: 7px; }
+
+.variant-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;          /* without this, badges and the date collide on narrow screens */
+  min-width: 0;
+}
+.variant-name {
+  font-weight: 620;
+  font-size: var(--fs-base);
+  letter-spacing: -0.01em;
+  min-width: 0;
+  overflow-wrap: anywhere;  /* variant slugs are long and unbroken */
+}
+.variant-gist {
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Pulled-out prose — used for what a variant concluded, which is the thing most
+   worth reading on the page. */
+.callout {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: var(--s3) var(--s4);
+}
+.callout-ok { border-left-color: var(--ok); background: var(--ok-weak); }
+.callout-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 650;
+  color: var(--text-muted);
+  margin-bottom: var(--s1);
+}
 
 /* --- 10. Code & diff --------------------------------------------------- */
 
