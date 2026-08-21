@@ -284,7 +284,7 @@ function projectCard(p) {
     const list = h('div', { class: 'col', style: 'gap:4px' });
     previews.forEach(v => list.append(h('div', { class: 'xsmall' },
       h('span', { class: 'chip' }, v.name || v.variant), ' ',
-      h('span', { class: 'muted' }, truncate(v.description, 70)))));
+      h('span', { class: 'muted', title: v.description }, truncate(v.description, 70)))));
     card.append(list);
   }
 
@@ -298,6 +298,30 @@ function projectCard(p) {
 function truncate(text, n) {
   const t = String(text).replace(/\s+/g, ' ').trim();
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
+}
+
+/* Clamped prose with a working toggle — the full text is always reachable
+ * (owner UX verdict 2026-08-21: never hard-truncate without a control). */
+function expandable(text, n, cls) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return null;
+  const box = h('span', { class: cls || '' });
+  if (t.length <= n) { box.textContent = t; return box; }
+  const short = t.slice(0, n - 1) + '…';
+  const body = h('span', {}, short);
+  const btn = h('button', { class: 'morelink', type: 'button' }, 'more');
+  let open = false;
+  btn.addEventListener('click', (ev) => {
+    // Inside a <summary>, a plain click would also toggle the panel; this is a
+    // text control, not a disclosure control.
+    ev.preventDefault();
+    if (ev.stopPropagation) ev.stopPropagation();
+    open = !open;
+    body.textContent = open ? t : short;
+    btn.textContent = open ? 'less' : 'more';
+  });
+  box.append(body, ' ', btn);
+  return box;
 }
 
 async function viewProject(app, slug, tab, focusVariant) {
@@ -471,7 +495,7 @@ function variantPanel(project, variant, compare) {
           : null)),
     h('div', { class: 'variant-gist' },
       variant.description
-        ? truncate(variant.description, 190)
+        ? expandable(variant.description, 190)
         : h('span', { class: 'faint' }, 'No description recorded for this variant.')))));
 
   const body = h('div', { class: 'panel-body' });
@@ -1281,7 +1305,76 @@ function lineageView(project) {
   });
 
   const list = h('ol', { class: 'lineage-rows', role: 'list' });
-  lineage.rows.forEach(row => list.append(lineageRow(project, row, provenanceBy)));
+  const rows = lineage.rows;
+  const items = rows.map(row => ({ row, li: lineageRow(project, row, provenanceBy) }));
+
+  // A row's subtree is the contiguous run of deeper rows right below it — the
+  // emitter is depth-first, so folding = hiding that run.
+  items.forEach((it, i) => {
+    let end = i + 1;
+    while (end < rows.length && rows[end].indent > rows[i].indent) end++;
+    it.kids = end - (i + 1);
+  });
+
+  const collapsed = new Set();
+  const apply = () => {
+    const stack = [];   // indents of collapsed ancestors
+    items.forEach((it, i) => {
+      while (stack.length && rows[i].indent <= stack[stack.length - 1]) stack.pop();
+      it.li.classList.toggle('lg-hidden', stack.length > 0);
+      const isCollapsed = collapsed.has(rows[i].variant);
+      if (it.fold) {
+        it.fold.textContent = isCollapsed ? '\u25B8' : '\u25BE';
+        it.fold.setAttribute('aria-expanded', String(!isCollapsed));
+      }
+      if (it.badge) it.badge.classList.toggle('hidden', !isCollapsed);
+      if (isCollapsed) stack.push(rows[i].indent);
+    });
+  };
+
+  items.forEach((it) => {
+    if (!it.kids) return;
+    const fold = h('button', {
+      class: 'lg-fold', type: 'button',
+      title: 'Fold or unfold this idea\u2019s descendants',
+    }, '\u25BE');
+    const badge = h('button', { class: 'badge badge-info lg-foldbadge hidden', type: 'button' },
+      `${it.kids} hidden`);
+    const toggle = () => {
+      if (collapsed.has(it.row.variant)) collapsed.delete(it.row.variant);
+      else collapsed.add(it.row.variant);
+      apply();
+    };
+    fold.addEventListener('click', toggle);
+    badge.addEventListener('click', toggle);
+    it.fold = fold; it.badge = badge;
+    if (it.li._gutter) it.li._gutter.append(h('span', { class: 'lg-cell lg-foldcell' }, fold));
+    if (it.li._head) it.li._head.append(badge);
+  });
+
+  if (items.some(it => it.kids)) {
+    wrap.append(h('div', { class: 'toolbar lineage-toolbar' },
+      h('button', {
+        class: 'btn', type: 'button',
+        onclick: () => { collapsed.clear(); apply(); },
+      }, 'Expand all'),
+      h('button', {
+        class: 'btn', type: 'button',
+        onclick: () => {
+          items.forEach(it => { if (it.kids) collapsed.add(it.row.variant); });
+          apply();
+        },
+      }, 'Collapse all')));
+  }
+
+  // Small trees start fully open; a big one starts folded below depth 2 so the
+  // page opens at the idea level rather than as a wall.
+  if (rows.length > 40) {
+    items.forEach(it => { if (it.kids && it.row.indent >= 2) collapsed.add(it.row.variant); });
+  }
+  apply();
+
+  items.forEach(it => list.append(it.li));
   wrap.append(list);
 
   if (!lineage.available) {
@@ -1351,15 +1444,18 @@ function lineageRow(project, row, provenanceBy) {
     head,
     meta.childNodes.length ? meta : null,
     row.description
-      ? h('div', { class: 'lineage-gist' }, truncate(row.description, 200))
+      ? h('div', { class: 'lineage-gist' }, expandable(row.description, 200))
       : h('div', { class: 'lineage-gist faint' }, 'No description recorded.'),
     row.conclusion
       ? h('div', { class: 'lineage-verdict' },
           h('span', { class: 'callout-label' }, 'concluded'),
-          truncate(row.conclusion, 200))
+          expandable(row.conclusion, 200))
       : null);
 
-  li.append(treeGutter(row), body);
+  const gutter = treeGutter(row);
+  li.append(gutter, body);
+  li._gutter = gutter;
+  li._head = head;
   return li;
 }
 

@@ -890,3 +890,41 @@ table.tbl td.count { color: var(--text-faint); }
 
 /* Lineage: the primary parent's note rendered as prose, not a parent-name echo. */
 .chip-why { font-style: italic; color: var(--text-faint); border-style: dashed; }
+
+/* --- 18b. Lineage interactions & expandable prose ----------------------- */
+
+.morelink {
+  display: inline-block; border: none; background: none; padding: 0 2px;
+  font: inherit; font-size: var(--fs-xs); color: var(--accent);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.morelink:hover { color: var(--text); }
+
+.lg-hidden { display: none; }
+
+.lg-foldcell { width: 22px; }
+.lg-fold {
+  position: absolute; left: 0; top: calc(var(--s3) + 0.62em);
+  transform: translateY(-50%);
+  width: 20px; height: 20px; line-height: 1;
+  border: 1px solid var(--line-strong); border-radius: 4px;
+  background: var(--surface); color: var(--text-muted);
+  font-size: 11px; cursor: pointer; padding: 0;
+}
+.lg-fold:hover { color: var(--text); border-color: var(--accent); }
+
+.lg-foldbadge { cursor: pointer; border: none; font: inherit; font-size: var(--fs-xs); }
+
+.lineage-toolbar { margin-bottom: var(--s2); gap: var(--s2); }
+
+/* Deep trees on a phone: shrink the gutter instead of pushing prose off-screen. */
+@media (max-width: 640px) {
+  .lg-cell { width: 12px; }
+  .lg-guide::before, .lg-elbow::before { left: 5px; }
+  .lg-elbow::after { left: 5px; width: 7px; }
+  .lg-dotcell { width: 16px; }
+  .lg-foldcell { width: 22px; }
+}
+
+/* Long slugs or metric names inside chips must wrap, not push the row wide. */
+.chip { max-width: 100%; overflow-wrap: break-word; }
