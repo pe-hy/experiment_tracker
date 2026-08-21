@@ -471,7 +471,7 @@ table.tbl .cell-wrap { white-space: normal; min-width: 240px; }
   gap: 2px var(--s4);
   font-size: var(--fs-sm);
 }
-.kv dt { color: var(--text-muted); padding: 3px 0; overflow-wrap: anywhere; }
+.kv dt { color: var(--text-muted); padding: 3px 0; overflow-wrap: break-word; }
 .kv dd { margin: 0; padding: 3px 0; font-family: var(--font-mono); word-break: break-word; }
 
 /* --- 9. Panels / sections --------------------------------------------- */
@@ -523,42 +523,55 @@ details.panel > summary:hover { background: var(--surface-3); }
    A grid here needs every child placed explicitly, because the ::before marker is
    itself a grid item and auto-placement will otherwise push the third child into
    the narrow marker column. */
+/* BLOCK layout, deliberately, and no flex-grow spacer anywhere inside.
+   Both previous attempts here collapsed the text to a sliver and rendered it one
+   character per line down the page:
+     1. a 2-column grid, where the ::before marker is itself a grid item, so
+        auto-placement pushed the description into the 10px marker column;
+     2. flex, where a `flex: 1 1 auto` spacer in the header row grew and starved
+        the name, which `min-width: 0` then let shrink toward zero while
+        `overflow-wrap: anywhere` broke it after every character.
+   A block box always takes its parent's full content width; nothing can squeeze
+   it. The marker is taken out of flow entirely so it cannot be a layout
+   participant. Do not reintroduce flex or grid on this summary. */
 details.panel.variant > summary {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s3);
+  display: block;
+  position: relative;
+  padding-left: 32px;
   font-weight: 400;
 }
-details.panel.variant > summary::before { margin-top: 7px; flex: none; }
-
-.variant-summary {
-  flex: 1 1 auto;
-  min-width: 0;          /* without this a long slug refuses to wrap and overflows */
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+details.panel.variant > summary::before {
+  position: absolute;
+  left: var(--s4);
+  top: 17px;
+  margin-top: 0;
 }
+
+.variant-summary { display: block; }
 
 .variant-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--s2);
-  flex-wrap: wrap;          /* without this, badges and the date collide on narrow screens */
-  min-width: 0;
+  flex-wrap: wrap;          /* badges and the date drop to a new line instead of colliding */
 }
 .variant-name {
   font-weight: 620;
   font-size: var(--fs-base);
   letter-spacing: -0.01em;
-  min-width: 0;
-  overflow-wrap: anywhere;  /* variant slugs are long and unbroken */
+  /* break-word, never `anywhere`: it only breaks a word that alone exceeds the
+     line, instead of shattering ordinary text the moment a box gets narrow. */
+  overflow-wrap: break-word;
 }
+/* Pushes the trailing badges right without adding a growing flex item that would
+   compete with the name for space. */
+.variant-trailing { margin-left: auto; display: flex; align-items: baseline; gap: var(--s2); }
 .variant-gist {
+  margin-top: 3px;
   font-size: var(--fs-sm);
   line-height: 1.45;
   color: var(--text-muted);
-  min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Pulled-out prose — used for what a variant concluded, which is the thing most
@@ -809,7 +822,7 @@ table.tbl td.count { color: var(--text-faint); }
   flex-wrap: wrap; min-width: 0;
   min-height: 22px;
 }
-.lineage-name { font-weight: 620; overflow-wrap: anywhere; }
+.lineage-name { font-weight: 620; overflow-wrap: break-word; }
 .lineage-meta { display: flex; gap: var(--s1); flex-wrap: wrap; margin-top: var(--s1); }
 .chip-prov { background: transparent; border-style: dashed; }
 .lineage-gist {

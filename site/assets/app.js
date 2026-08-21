@@ -452,12 +452,14 @@ function variantPanel(project, variant) {
         ? h('span', { class: 'chip' }, variant.variant) : null,
       status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
       variant.conclusion ? h('span', { class: 'badge badge-ok' }, 'concluded') : null,
-      h('span', { class: 'flex-spacer' }),
-      h('span', { class: 'badge badge-info' }, runsLabel),
-      variant.last_activity
-        ? h('span', { class: 'xsmall faint nowrap', title: fmtDate(variant.last_activity) },
-            fmtAgo(variant.last_activity))
-        : null),
+      // margin-left:auto on this group, rather than a growing spacer element: a
+      // flex-grow spacer competes with the name for width and can starve it.
+      h('span', { class: 'variant-trailing' },
+        h('span', { class: 'badge badge-info' }, runsLabel),
+        variant.last_activity
+          ? h('span', { class: 'xsmall faint nowrap', title: fmtDate(variant.last_activity) },
+              fmtAgo(variant.last_activity))
+          : null)),
     h('div', { class: 'variant-gist' },
       variant.description
         ? truncate(variant.description, 190)

@@ -86,7 +86,16 @@ console.log('\nstylesheet invariants');
   const placesChildren = /grid-column/.test(css);
   check('the variant summary does not rely on grid auto-placement',
     !isGrid || placesChildren,
-    'a grid summary must place its children explicitly; flex with one wrapper is safer');
+    'a grid summary must place its children explicitly; block layout is safer still');
+  check('the variant summary uses block layout',
+    /display:\s*block/.test(summaryRule),
+    'flex and grid can both squeeze a child to a sliver; a block box cannot');
+
+  // `anywhere` is the amplifier: it turns any narrow box into one character per
+  // line. `break-word` only breaks a word that alone exceeds the line.
+  const anywhere = css.match(/overflow-wrap:\s*anywhere/g) || [];
+  check('no overflow-wrap: anywhere in the stylesheet', anywhere.length === 0,
+    `${anywhere.length} occurrence(s)`);
 }
 
 console.log('\nrelative time (a system of record must not misdate its own runs)');
@@ -164,6 +173,11 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
     const kids = summary.childNodes.filter(n => n.tagName);
     return kids.length === 1 && String(kids[0].className).includes('variant-summary');
   })(), 'extra children get auto-placed into the narrow marker column');
+  check('no growing spacer competes with the variant name for width', (() => {
+    const head = app.find(e => String(e.className || '').includes('variant-head'));
+    if (!head) return false;
+    return !head.findAll(e => /flex-spacer|topbar-spacer/.test(String(e.className || ''))).length;
+  })(), 'a flex-grow spacer starves the name and it collapses to a vertical sliver');
   check('the description sits inside that wrapper', (() => {
     const wrap = app.find(e => String(e.className || '').includes('variant-summary'));
     return !!wrap && !!wrap.find(e => String(e.className || '').includes('variant-gist'));
