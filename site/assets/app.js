@@ -438,7 +438,12 @@ function variantPanel(project, variant) {
   // The summary is two rows: identity on top, the idea underneath. Collapsed, that is
   // still enough to know what this variant was for — which is the whole point of the
   // tracker, and was previously hidden until you expanded it.
+  // One wrapper element inside the summary, deliberately. The summary previously
+  // laid its children out on a 2-column grid, but there were three grid items once
+  // the disclosure marker is counted, so auto-placement wrapped the description into
+  // the 10px marker column and rendered it one character per line.
   panel.append(h('summary', {},
+    h('div', { class: 'variant-summary' },
     h('div', { class: 'variant-head' },
       h('span', { class: 'variant-name' }, variant.variant_name || variant.variant),
       // Real data has one variant whose variant_name is another variant's slug, so
@@ -456,7 +461,7 @@ function variantPanel(project, variant) {
     h('div', { class: 'variant-gist' },
       variant.description
         ? truncate(variant.description, 190)
-        : h('span', { class: 'faint' }, 'No description recorded for this variant.'))));
+        : h('span', { class: 'faint' }, 'No description recorded for this variant.')))));
 
   const body = h('div', { class: 'panel-body' });
   body.append(description(variant.description, 'variant'));

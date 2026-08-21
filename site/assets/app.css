@@ -519,14 +519,25 @@ details.panel > summary:hover { background: var(--surface-3); }
 /* A variant summary carries two rows: identity, then the idea itself. Grid rather
    than flex so the disclosure triangle stays aligned to the first line while the
    description wraps freely underneath. */
+/* Flex with exactly two items — the marker and one wrapper — rather than a grid.
+   A grid here needs every child placed explicitly, because the ::before marker is
+   itself a grid item and auto-placement will otherwise push the third child into
+   the narrow marker column. */
 details.panel.variant > summary {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  align-items: start;
-  gap: 3px var(--s3);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
   font-weight: 400;
 }
-details.panel.variant > summary::before { margin-top: 7px; }
+details.panel.variant > summary::before { margin-top: 7px; flex: none; }
+
+.variant-summary {
+  flex: 1 1 auto;
+  min-width: 0;          /* without this a long slug refuses to wrap and overflows */
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
 .variant-head {
   display: flex;

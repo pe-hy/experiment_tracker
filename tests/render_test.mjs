@@ -77,6 +77,16 @@ console.log('\nstylesheet invariants');
     !(sticky && offset && !bounded),
     'give .table-scroll a max-height and use top:0, or drop position:sticky');
   check('long metric headers may wrap', /white-space:\s*normal/.test(thead));
+
+  // A <details> marker is itself a grid item, so a grid summary needs every child
+  // placed explicitly or auto-placement drops the last one into the marker column —
+  // which rendered a variant description one character per line, down the page.
+  const summaryRule = (css.match(/details\.panel\.variant > summary \{[^}]*\}/) || [''])[0];
+  const isGrid = /display:\s*grid/.test(summaryRule);
+  const placesChildren = /grid-column/.test(css);
+  check('the variant summary does not rely on grid auto-placement',
+    !isGrid || placesChildren,
+    'a grid summary must place its children explicitly; flex with one wrapper is safer');
 }
 
 console.log('\nrelative time (a system of record must not misdate its own runs)');
@@ -148,6 +158,16 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
     'lazy tables keep the first paint cheap');
   check('offers expand/collapse all',
     !!app.find(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all'));
+  check('the summary holds exactly one wrapper, not three loose children', (() => {
+    const summary = app.find(e => e.tagName === 'SUMMARY');
+    if (!summary) return false;
+    const kids = summary.childNodes.filter(n => n.tagName);
+    return kids.length === 1 && String(kids[0].className).includes('variant-summary');
+  })(), 'extra children get auto-placed into the narrow marker column');
+  check('the description sits inside that wrapper', (() => {
+    const wrap = app.find(e => String(e.className || '').includes('variant-summary'));
+    return !!wrap && !!wrap.find(e => String(e.className || '').includes('variant-gist'));
+  })());
 
   // Everything below concerns the run table, so open the variants first.
   app.findAll(e => e.tagName === 'BUTTON' && e.textContent === 'Expand all')[0].dispatch('click');
