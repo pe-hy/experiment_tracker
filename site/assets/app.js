@@ -867,16 +867,26 @@ async function viewRun(app, slug, runId) {
       h('div', { class: 'panel-body' }, description(variant.description, 'variant'))));
   }
 
-  // Metrics up front — this is what anyone opening a run came to see.
   const metrics = Object.entries(run.metrics || {}).filter(([, v]) => typeof v === 'number');
-  if (metrics.length) {
+  const metricsPanel = () => {
+    if (!metrics.length) return null;
     const row = h('div', { class: 'metrics-row' });
     metrics.sort(([a], [b]) => (a === run.primary_metric ? -1 : b === run.primary_metric ? 1 : a.localeCompare(b)));
     metrics.forEach(([k, v]) => row.append(h('div', { class: 'metric' },
       h('span', { class: 'k' }, k), h('span', { class: 'v' }, fmtNumber(v)))));
-    app.append(h('div', { class: 'panel' },
-      h('div', { class: 'panel-head' }, h('h3', {}, 'Metrics')),
-      h('div', { class: 'panel-body' }, row)));
+    return h('div', { class: 'panel' },
+      h('div', { class: 'panel-head' }, h('h3', {}, 'Metrics'),
+        h('span', { class: 'badge badge-info' }, String(metrics.length))),
+      h('div', { class: 'panel-body' }, row));
+  };
+
+  // The headline number, then the reasoning, then everything else. A run can report
+  // fifty metrics, and burying the one sentence that explains them under fifty tiles
+  // is exactly backwards for a tracker built around explanations.
+  if (run.primary_metric && typeof (run.metrics || {})[run.primary_metric] === 'number') {
+    app.append(h('div', { class: 'metrics-row mb-4' }, h('div', { class: 'metric' },
+      h('span', { class: 'k' }, run.primary_metric),
+      h('span', { class: 'v' }, fmtNumber(run.metrics[run.primary_metric])))));
   }
 
   for (const [title, text] of [['Hypothesis', run.hypothesis], ['Conclusion', run.conclusion], ['Notes', run.notes]]) {
@@ -897,6 +907,9 @@ async function viewRun(app, slug, runId) {
         : fmtValue(ref)];
     })));
   }
+
+  const mp = metricsPanel();
+  if (mp) app.append(mp);
 
   if (run.curves && Object.keys(run.curves).length) app.append(curvesPanel(run.curves));
 

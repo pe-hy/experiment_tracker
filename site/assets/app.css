@@ -436,6 +436,9 @@ table.tbl th, table.tbl td {
 }
 table.tbl thead th {
   position: sticky; top: var(--topbar-h); z-index: 2;
+  white-space: normal;
+  max-width: 15ch;
+  vertical-align: bottom;
   background: var(--surface-2);
   color: var(--text-muted);
   font-weight: 580;
