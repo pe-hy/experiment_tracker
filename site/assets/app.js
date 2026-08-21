@@ -393,33 +393,98 @@ function variantPanel(project, variant) {
   return panel;
 }
 
-/** Metric columns worth showing for this variant: the ones most runs actually have. */
-function metricColumns(runs, limit = 5) {
+/* Sample counts masquerading as scores. `metric_goals` cannot be trusted to
+ * separate them — in real data an agent declared "max" for 19 count-shaped keys,
+ * which would make "largest evaluation set" look like "best run". */
+const COUNT_RE = /(?:^|_)(n|count|solved|instances|records|episodes|steps|samples)$/i;
+const isCountMetric = (key) => COUNT_RE.test(key);
+
+/* Metric names arrive as `<suite>_<metric>`, where the suite is an evaluation pass
+ * (`frontier_solve_rate` vs `graded_solve_rate` are the same measurement on different
+ * problem sets). Splitting them for display makes a row of columns readable; they stay
+ * separate columns, because collapsing them would throw away two thirds of the
+ * evidence for variants that run several passes. */
+const SUITE_PREFIXES = [
+  'frontier', 'graded', 'unseen', 'mcts', 'pooled', 'gen', 'val', 'train', 'test',
+  'base450',
+];
+const SUITE_RE = new RegExp(
+  `^(${SUITE_PREFIXES.join('|')}|g\\d+r\\d+)_(.+)$`, 'i');
+
+function splitMetricKey(key) {
+  const m = SUITE_RE.exec(key);
+  return m ? { suite: m[1], base: m[2] } : { suite: null, base: key };
+}
+
+/** Columns worth showing for this variant.
+ *
+ * Selection is per-variant because variants measure different things: one global
+ * column set across this project leaves 48% of cells empty. Within a variant, a key
+ * has to be present in most runs to earn a column, which stops a single stray
+ * evaluation run from adding four columns of dashes.
+ */
+function metricColumns(project, runs, limit = 8, threshold = 0.8) {
+  const n = runs.length;
+  if (!n) return [];
   const counts = new Map();
   runs.forEach(r => Object.entries(r.metrics || {}).forEach(([k, v]) => {
     if (typeof v === 'number') counts.set(k, (counts.get(k) || 0) + 1);
   }));
-  const primary = runs.map(r => r.primary_metric).find(Boolean);
-  const keys = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
-  if (primary && keys.includes(primary)) {
-    keys.splice(keys.indexOf(primary), 1);
-    keys.unshift(primary);
+
+  // The project's headline metric is pinned even below threshold: a dash in the
+  // column everyone compares on is information, whereas quietly showing a different
+  // metric per variant is not.
+  const primary = (project && project.primary_metric) || runs.map(r => r.primary_metric).find(Boolean);
+
+  const quality = [], countish = [];
+  for (const [key, count] of counts) {
+    const frac = count / n;
+    if (frac < threshold && key !== primary) continue;
+    (isCountMetric(key) ? countish : quality).push([key, frac]);
   }
-  return keys.slice(0, limit);
+  const rank = (a, b) =>
+    (a[0] === primary ? -1 : b[0] === primary ? 1 : 0) || b[1] - a[1] || a[0].localeCompare(b[0]);
+  quality.sort(rank);
+  countish.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return [...quality, ...countish].map(e => e[0]).slice(0, limit);
+}
+
+/** One formatter per column, so a column never mixes "1" with "0.6832".
+ *  Decided from all the column's values at once rather than per cell. */
+function columnFormatter(key, values) {
+  const nums = values.filter(v => typeof v === 'number' && isFinite(v));
+  if (!nums.length) return () => '—';
+  const isPct = /pct|percent/i.test(key);
+  const isRate = /(^|_)(rate|frac|ratio)($|_)/i.test(key);
+  const allInt = nums.every(Number.isInteger);
+  const unit01 = nums.every(v => v >= 0 && v <= 1.0001);
+  const maxAbs = Math.max(...nums.map(Math.abs));
+
+  const fmt = (fn) => (v) => (typeof v === 'number' && isFinite(v)) ? fn(v) : '—';
+  if (allInt && !isRate && !isPct) return fmt(v => String(Math.round(v)));
+  if (isRate && unit01) return fmt(v => (v * 100).toFixed(1) + '%');
+  if (isPct) return fmt(v => v.toFixed(1) + '%');
+  const decimals = maxAbs >= 10 ? 2 : maxAbs >= 1 ? 3 : 4;
+  return fmt(v => v.toFixed(decimals));
 }
 
 function runTable(project, variant) {
   const runs = variant.runs;
-  const cols = metricColumns(runs);
+  const cols = metricColumns(project, runs);
   // Highlight the best value per metric so a leaderboard read is instant. Direction is
   // guessed from the name — losses and errors go down, everything else goes up.
   // Direction comes from the project's declared metric_goals when available; the
   // name heuristic is only a fallback, and it is wrong for things like "regret".
   const goals = project.metric_goals || {};
   const best = {};
+  const fmt = {};
   cols.forEach(k => {
     const vals = runs.map(r => (r.metrics || {})[k]).filter(v => typeof v === 'number');
+    fmt[k] = columnFormatter(k, vals);
     if (!vals.length) return;
+    // A count is never "best". This deliberately overrides metric_goals, which real
+    // data declares as "max" for keys like `solved` and `n`.
+    if (isCountMetric(k)) return;
     const lowerIsBetter = goals[k]
       ? goals[k] === 'min'
       : /loss|err|perplexity|ppl|nll|mse|mae|wer|cer|regret/i.test(k);
@@ -431,7 +496,7 @@ function runTable(project, variant) {
     { key: 'sel', label: '', plain: true },
     { key: 'run', label: 'Run' },
     { key: 'status', label: 'Status' },
-    ...cols.map(k => ({ key: `m:${k}`, label: k, num: true })),
+    ...cols.map(k => ({ key: `m:${k}`, label: k, num: true, metric: k })),
     { key: 'duration', label: 'Duration', num: true },
     { key: 'when', label: 'When' },
   ];
@@ -460,8 +525,17 @@ function runTable(project, variant) {
     const tr = h('tr');
     headers.forEach(col => {
       if (col.plain) { tr.append(h('th', { style: 'width:28px' })); return; }
-      const th = h('th', { class: 'sortable', role: 'columnheader', tabindex: '0' },
-        col.label, h('span', { class: 'arrow' }, sortDesc ? '▼' : '▲'));
+      let label = [col.label];
+      if (col.metric) {
+        const { suite, base } = splitMetricKey(col.metric);
+        label = suite
+          ? [h('span', { class: 'suite' }, suite), base]
+          : [base];
+      }
+      const th = h('th', {
+        class: 'sortable', role: 'columnheader', tabindex: '0',
+        title: col.metric || null,
+      }, ...label, h('span', { class: 'arrow' }, sortDesc ? '▼' : '▲'));
       if (sortKey === col.key) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending');
       const activate = () => {
         if (sortKey === col.key) sortDesc = !sortDesc;
@@ -503,11 +577,11 @@ function runTable(project, variant) {
         // Colour alone must not carry the meaning, so the best value also gets a
         // marker and a title.
         tr.append(h('td', {
-          class: 'num' + (isBest ? ' best' : ''),
+          class: 'num' + (isBest ? ' best' : '') + (isCountMetric(k) ? ' count' : ''),
           title: isBest ? `best ${k} in this variant` : null,
-        }, typeof v === 'number' ? fmtNumber(v) : '—', isBest ? ' ★' : ''));
+        }, fmt[k](v), isBest ? ' ★' : ''));
       });
-      tr.append(h('td', { class: 'num' }, fmtDuration(r.duration_seconds)));
+      tr.append(h('td', { class: 'num dur' }, fmtDuration(r.duration_seconds)));
       const when = r.finished_at || r.started_at;
       tr.append(h('td', { class: 'faint nowrap', title: fmtDate(when) }, fmtAgo(when) || '—'));
       tbody.append(tr);

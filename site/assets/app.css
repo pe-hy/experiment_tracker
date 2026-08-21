@@ -695,3 +695,23 @@ pre.code {
   .search { max-width: none; }
   main { padding: var(--s5) 0 var(--s7); }
 }
+
+/* --- 15. Metric table refinements ------------------------------------- */
+
+/* The evaluation suite a metric belongs to, shown as a tag so the column header
+   reads as "solve_rate on frontier" rather than one long underscored string. */
+table.tbl thead th .suite {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
+/* Sample counts are context, not results — never the thing you scan for. */
+table.tbl td.count { color: var(--text-faint); }

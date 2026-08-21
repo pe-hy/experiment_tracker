@@ -103,7 +103,23 @@ console.log('\nproject detail (#/p/fixture-project)');
   check('expanding builds the run tables', app.findAll(e => e.tagName === 'TABLE').length > 0);
   check('renders the variant conclusion', text.includes('Did not help'));
   check('marks a concluded variant', text.includes('concluded'));
-  check('shows the run table with metric columns', text.includes('val_accuracy'));
+  check('shows the run table with metric columns', (() => {
+    // The header renders the evaluation suite as a badge, so the full key lives in
+    // the title rather than in the visible text.
+    const th = app.find(e => e.tagName === 'TH' && e.getAttribute('title') === 'val_accuracy');
+    return !!th && th.textContent.includes('accuracy');
+  })());
+  check('splits the evaluation suite out of the metric name',
+    !!app.find(e => e.className === 'suite' && e.textContent === 'val'),
+    'frontier_solve_rate and graded_solve_rate must not read as unrelated strings');
+  check('rates render as percentages, consistently within a column', (() => {
+    const cells = app.findAll(e => e.tagName === 'TD' && e.className.includes('num'))
+      .map(e => e.textContent.trim());
+    // fixture val_accuracy values are 0.8241 and 0.4 -> one column, both at 4dp.
+    // The best cell also carries a star, so compare on the numeric prefix.
+    const nums = cells.map(c => c.replace(/\s*★$/, ''));
+    return nums.includes('0.8241') && nums.includes('0.4000');
+  })(), 'a column must not mix "0.4" with "0.8241"');
   check('marks the best value with a glyph, not colour alone', text.includes('★'),
     'WCAG: colour must not be the only signal');
   check('respects metric_goals direction (lower val_loss wins)', (() => {

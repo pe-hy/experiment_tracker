@@ -225,6 +225,13 @@ def build_project(project_dir, slug):
                 if value in ("max", "min"):
                     goals[key] = value
 
+    observed = set()
+    for run in runs:
+        metrics = run.get("metrics")
+        if isinstance(metrics, dict):
+            observed.update(k for k, v in metrics.items() if is_number(v))
+    goals = dict((k, v) for k, v in goals.items() if k in observed)
+
     project = {
         "slug": slug,
         "name": name or slug,
@@ -240,6 +247,9 @@ def build_project(project_dir, slug):
         "statuses": _tally(runs, "status"),
         "tags": _all_tags(runs),
         "metric_keys": _metric_keys(runs),
+        # metric_goals accumulates over every run ever posted and never shrinks, so
+        # renamed metrics would leave stale directions behind forever. Keep only the
+        # keys some run actually reports.
         # Summed over every run including failures — the compute number nobody can
         # reconstruct after the fact.
         "gpu_hours": _sum_gpu_hours(runs),
@@ -354,7 +364,6 @@ def main():
             "gpu_hours": project["gpu_hours"],
             "statuses": project["statuses"],
             "tags": project["tags"],
-            "metric_keys": project["metric_keys"],
             # A few recent variant blurbs make the project cards genuinely informative
             # instead of being a wall of identical tiles.
             "variant_preview": [
