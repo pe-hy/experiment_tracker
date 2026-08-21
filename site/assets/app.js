@@ -233,7 +233,7 @@ function recentRow(r) {
     h('td', { class: 'faint nowrap', title: fmtDate(r.when) }, fmtAgo(r.when) || '—'),
     h('td', {}, h('a', { href: `#/p/${encodeURIComponent(r.project)}` },
       r.project_name || r.project)),
-    h('td', { class: 'faint' }, r.variant || '—'),
+    h('td', { class: 'faint' }, r.variant_name || r.variant || '—'),
     h('td', {}, h('a', {
       href: `#/p/${encodeURIComponent(r.project)}/r/${encodeURIComponent(r.run_id)}`,
     }, r.run_name || r.run_id)),
@@ -300,29 +300,12 @@ function truncate(text, n) {
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
 }
 
-/* Clamped prose with a working toggle — the full text is always reachable
- * (owner UX verdict 2026-08-21: never hard-truncate without a control). */
-function expandable(text, n, cls) {
-  const t = String(text || '').replace(/\s+/g, ' ').trim();
-  if (!t) return null;
-  const box = h('span', { class: cls || '' });
-  if (t.length <= n) { box.textContent = t; return box; }
-  const short = t.slice(0, n - 1) + '…';
-  const body = h('span', {}, short);
-  const btn = h('button', { class: 'morelink', type: 'button' }, 'more');
-  let open = false;
-  btn.addEventListener('click', (ev) => {
-    // Inside a <summary>, a plain click would also toggle the panel; this is a
-    // text control, not a disclosure control.
-    ev.preventDefault();
-    if (ev.stopPropagation) ev.stopPropagation();
-    open = !open;
-    body.textContent = open ? t : short;
-    btn.textContent = open ? 'less' : 'more';
-  });
-  box.append(body, ' ', btn);
-  return box;
-}
+/* Descriptions render in FULL, always (owner UX verdict 2026-08-21 second round:
+ * "just show the full description by default"). The medians make this cheap — a
+ * variant description is 170–430 characters, two to four lines. Clamping saved a
+ * few lines per row and cost a click per row per reader; at 23 variants that was
+ * ~50 clicks to read one project's story. Truncation survives only where text is
+ * a NAVIGATION PREVIEW with the full text one click away (project cards, feed). */
 
 async function viewProject(app, slug, tab, focusVariant) {
   const project = await getJSON(`${DATA}/projects/${encodeURIComponent(slug)}/project.json`);
@@ -426,13 +409,25 @@ function saveOpenState(projectSlug, variant, open) {
   } catch (e) { /* private mode; the page still works, it just forgets */ }
 }
 
-const VARIANT_STATUS = {
-  adopted: ['badge-ok', 'adopted'],
-  abandoned: ['badge-info', 'abandoned'],
-  paused: ['badge-warn', 'paused'],
-  done: ['badge-ok', 'done'],
-  active: ['badge-accent', 'active'],
+/* ONE status vocabulary for the whole site. Three views used to keep three
+ * partial maps: the runs tab knew adopted/done/active but not refuted or
+ * superseded, so exactly the variants with the strongest verdicts rendered with
+ * no status at all. Every badge, dot and legend entry now comes from here. */
+const STATUS_META = {
+  adopted:      { badge: 'badge-ok',     label: 'adopted' },
+  refuted:      { badge: 'badge-bad',    label: 'did not work' },
+  superseded:   { badge: 'badge-info',   label: 'superseded' },
+  inconclusive: { badge: 'badge-warn',   label: 'inconclusive' },
+  active:       { badge: 'badge-accent', label: 'in progress' },
+  done:         { badge: 'badge-ok',     label: 'done' },
+  paused:       { badge: 'badge-warn',   label: 'paused' },
+  abandoned:    { badge: 'badge-info',   label: 'abandoned' },
 };
+
+function statusBadgeFor(status) {
+  const meta = STATUS_META[status];
+  return meta ? h('span', { class: `badge ${meta.badge}` }, meta.label) : null;
+}
 
 /** One line answering "how is this project going?" — the only place that does. */
 function verdictStrip(project) {
@@ -450,9 +445,9 @@ function verdictStrip(project) {
                  'abandoned', 'paused', 'done', 'active', 'open'];
   order.forEach(key => {
     if (!counts[key]) return;
-    const label = STATUS_LABEL[key] || ['badge-info', key];
-    strip.append(h('span', { class: `badge ${label[0]}` },
-      `${counts[key]} ${key === 'open' ? 'no verdict yet' : label[1]}`));
+    const meta = STATUS_META[key] || { badge: 'badge-info', label: key };
+    strip.append(h('span', { class: `badge ${meta.badge}` },
+      `${counts[key]} ${key === 'open' ? 'no verdict yet' : meta.label}`));
   });
   strip.append(h('span', { class: 'xsmall faint' },
     `${concluded} of ${total} variants have a recorded conclusion`));
@@ -465,7 +460,6 @@ function variantPanel(project, variant, compare) {
   panel.dataset.variant = variant.variant;
   panel.setAttribute('id', `v-${variant.variant}`);
 
-  const status = VARIANT_STATUS[variant.status];
   const runsLabel = `${variant.run_count} run${variant.run_count === 1 ? '' : 's'}`;
 
   // The summary is two rows: identity on top, the idea underneath. Collapsed, that is
@@ -475,6 +469,10 @@ function variantPanel(project, variant, compare) {
   // laid its children out on a 2-column grid, but there were three grid items once
   // the disclosure marker is counted, so auto-placement wrapped the description into
   // the 10px marker column and rendered it one character per line.
+  // The summary IS the reading surface now: full description and full conclusion,
+  // always visible. What the disclosure hides is only the evidence (the run table).
+  // Before this, the description was clamped at 190 chars here AND repeated in full
+  // inside the panel body — half a sentence by default, twice when opened.
   panel.append(h('summary', {},
     h('div', { class: 'variant-summary' },
     h('div', { class: 'variant-head' },
@@ -483,8 +481,7 @@ function variantPanel(project, variant, compare) {
       // two different ideas rendered under one heading. Show the slug when it differs.
       (variant.variant_name && variant.variant_name !== variant.variant)
         ? h('span', { class: 'chip' }, variant.variant) : null,
-      status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
-      variant.conclusion ? h('span', { class: 'badge badge-ok' }, 'concluded') : null,
+      statusBadgeFor(variant.status),
       // margin-left:auto on this group, rather than a growing spacer element: a
       // flex-grow spacer competes with the name for width and can starve it.
       h('span', { class: 'variant-trailing' },
@@ -495,17 +492,13 @@ function variantPanel(project, variant, compare) {
           : null)),
     h('div', { class: 'variant-gist' },
       variant.description
-        ? expandable(variant.description, 190)
-        : h('span', { class: 'faint' }, 'No description recorded for this variant.')))));
-
-  const body = h('div', { class: 'panel-body' });
-  body.append(description(variant.description, 'variant'));
-  if (variant.conclusion) {
-    body.append(h('div', { class: 'callout callout-ok mt-4' },
-      h('div', { class: 'callout-label' }, 'What we concluded'),
-      description(variant.conclusion, 'conclusion')));
-  }
-  panel.append(body);
+        ? variant.description
+        : h('span', { class: 'faint' }, 'No description recorded for this variant.')),
+    variant.conclusion
+      ? h('div', { class: 'variant-verdict' },
+          h('span', { class: 'verdict-label' }, 'Conclusion'), ' ',
+          variant.conclusion)
+      : null)));
 
   // Build the run table only when the variant is actually opened. Eagerly building
   // twenty-odd tables costs thousands of nodes nobody looks at, and the browser pays
@@ -999,15 +992,22 @@ async function viewRun(app, slug, runId) {
       ? h('a', {
           class: 'chip',
           href: `#/p/${encodeURIComponent(slug)}/v/${encodeURIComponent(run.variant)}`,
-        }, `variant: ${run.variant}`)
+          title: run.variant,
+        }, `variant: ${(variant && variant.variant_name) || run.variant}`)
       : null,
       run.author && h('span', { class: 'chip' }, run.author),
       ...(run.tags || []).map(t => h('span', { class: 'chip' }, t)))));
 
-  if (variant && variant.description) {
+  if (variant && (variant.description || variant.conclusion)) {
     app.append(h('div', { class: 'panel' },
       h('div', { class: 'panel-head' }, h('h3', {}, 'What this variant is testing')),
-      h('div', { class: 'panel-body' }, description(variant.description, 'variant'))));
+      h('div', { class: 'panel-body' },
+        description(variant.description, 'variant'),
+        variant.conclusion
+          ? h('div', { class: 'callout callout-ok mt-4' },
+              h('div', { class: 'callout-label' }, 'Conclusion'),
+              description(variant.conclusion, 'conclusion'))
+          : null)));
   }
 
   const metrics = Object.entries(run.metrics || {}).filter(([, v]) => typeof v === 'number');
@@ -1270,20 +1270,42 @@ function treeGutter(row) {
   return g;
 }
 
-const STATUS_LABEL = {
-  adopted: ['badge-ok', 'adopted'],
-  refuted: ['badge-bad', 'did not work'],
-  superseded: ['badge-info', 'superseded'],
-  inconclusive: ['badge-warn', 'inconclusive'],
-  abandoned: ['badge-info', 'abandoned'],
-  paused: ['badge-warn', 'paused'],
-  done: ['badge-ok', 'done'],
-  active: ['badge-accent', 'active'],
-};
-
 const RELATION_LABEL = {
   'derived-from': 'from', composes: 'composes', replicates: 'replicates',
 };
+
+/* Which subtrees a reader folded is reading state, like which variants they had
+ * open — same store, same reasoning. */
+function foldStateKey(projectSlug) { return `fold:${projectSlug}`; }
+
+function loadFoldState(projectSlug) {
+  try {
+    const raw = localStorage.getItem(foldStateKey(projectSlug));
+    return raw === null ? null : new Set(JSON.parse(raw));
+  } catch (e) { return null; }
+}
+
+function saveFoldState(projectSlug, collapsed) {
+  try {
+    localStorage.setItem(foldStateKey(projectSlug), JSON.stringify([...collapsed]));
+  } catch (e) { /* private mode; folding still works, it just forgets */ }
+}
+
+/** One-line legend so the status dots and badges need no prior knowledge. */
+function statusLegend(rows) {
+  const present = [...new Set(rows.map(r => r.status).filter(k => STATUS_META[k]))];
+  if (!present.length) return null;
+  const order = Object.keys(STATUS_META);
+  present.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const legend = h('div', { class: 'legend xsmall faint' });
+  present.forEach(k => legend.append(h('span', { class: 'legend-item' },
+    h('span', { class: `lg-dot legend-dot status-${k}` }), STATUS_META[k].label)));
+  if (rows.some(r => r.role === 'control')) {
+    legend.append(h('span', { class: 'legend-item' },
+      h('span', { class: 'lg-dot legend-dot lg-control status-active' }), 'square = control arm'));
+  }
+  return legend;
+}
 
 function lineageView(project) {
   const lineage = project.lineage;
@@ -1304,9 +1326,13 @@ function lineageView(project) {
     (provenanceBy[e.child] = provenanceBy[e.child] || []).push(e.parent);
   });
 
+  // Slug → display name, so no surface below ever has to show a join key.
+  const nameOf = {};
+  lineage.rows.forEach(r => { nameOf[r.variant] = r.variant_name || r.variant; });
+
   const list = h('ol', { class: 'lineage-rows', role: 'list' });
   const rows = lineage.rows;
-  const items = rows.map(row => ({ row, li: lineageRow(project, row, provenanceBy) }));
+  const items = rows.map(row => ({ row, li: lineageRow(project, row, provenanceBy, nameOf) }));
 
   // A row's subtree is the contiguous run of deeper rows right below it — the
   // emitter is depth-first, so folding = hiding that run.
@@ -1316,62 +1342,86 @@ function lineageView(project) {
     it.kids = end - (i + 1);
   });
 
+  // Restore the reader's folds; first visit to a big tree starts folded below
+  // depth 2 so the page opens at the idea level rather than as a wall.
+  const saved = loadFoldState(project.slug);
   const collapsed = new Set();
+  if (saved) {
+    items.forEach(it => { if (it.kids && saved.has(it.row.variant)) collapsed.add(it.row.variant); });
+  } else if (rows.length > 40) {
+    items.forEach(it => { if (it.kids && it.row.indent >= 2) collapsed.add(it.row.variant); });
+  }
+
   const apply = () => {
     const stack = [];   // indents of collapsed ancestors
     items.forEach((it, i) => {
       while (stack.length && rows[i].indent <= stack[stack.length - 1]) stack.pop();
       it.li.classList.toggle('lg-hidden', stack.length > 0);
       const isCollapsed = collapsed.has(rows[i].variant);
-      if (it.fold) {
-        it.fold.textContent = isCollapsed ? '\u25B8' : '\u25BE';
-        it.fold.setAttribute('aria-expanded', String(!isCollapsed));
+      if (it.chev) {
+        it.chev.classList.toggle('is-folded', isCollapsed);
+        it.chev.setAttribute('aria-expanded', String(!isCollapsed));
+        it.chev.setAttribute('title', isCollapsed
+          ? `Show the ${it.kids} idea${it.kids === 1 ? '' : 's'} that came from this`
+          : 'Hide the ideas that came from this');
       }
       if (it.badge) it.badge.classList.toggle('hidden', !isCollapsed);
       if (isCollapsed) stack.push(rows[i].indent);
     });
+    saveFoldState(project.slug, collapsed);
   };
 
   items.forEach((it) => {
-    if (!it.kids) return;
-    const fold = h('button', {
-      class: 'lg-fold', type: 'button',
-      title: 'Fold or unfold this idea\u2019s descendants',
-    }, '\u25BE');
-    const badge = h('button', { class: 'badge badge-info lg-foldbadge hidden', type: 'button' },
-      `${it.kids} hidden`);
+    if (!it.kids) {
+      // Same left edge for every name, whether or not there is a control to click.
+      if (it.li._head) it.li._head.prepend(h('span', { class: 'lg-chev-spacer', 'aria-hidden': 'true' }));
+      return;
+    }
+    // The disclosure control sits where every file tree puts it — immediately left
+    // of the name it controls — instead of floating in the indent gutter, where its
+    // x-position changed with depth and its 20px hit target sat between rails.
+    const chev = h('button', { class: 'lg-chev', type: 'button' },
+      h('span', { class: 'lg-chev-mark', 'aria-hidden': 'true' }));
+    // Visible only while folded: the one moment the reader needs a count of what
+    // they cannot see. (Its predecessor was visible permanently — the CSS class it
+    // toggled was never defined — so every parent shouted "N hidden" all the time.)
+    const badge = h('button', { class: 'lg-foldbadge hidden', type: 'button' },
+      `${it.kids} more idea${it.kids === 1 ? '' : 's'}`);
     const toggle = () => {
       if (collapsed.has(it.row.variant)) collapsed.delete(it.row.variant);
       else collapsed.add(it.row.variant);
       apply();
     };
-    fold.addEventListener('click', toggle);
+    chev.addEventListener('click', toggle);
     badge.addEventListener('click', toggle);
-    it.fold = fold; it.badge = badge;
-    if (it.li._gutter) it.li._gutter.append(h('span', { class: 'lg-cell lg-foldcell' }, fold));
-    if (it.li._head) it.li._head.append(badge);
+    it.chev = chev; it.badge = badge;
+    if (it.li._head) {
+      it.li._head.prepend(chev);
+      it.li._head.append(badge);
+    }
   });
 
-  if (items.some(it => it.kids)) {
+  const foldables = items.filter(it => it.kids).length;
+  if (foldables) {
     wrap.append(h('div', { class: 'toolbar lineage-toolbar' },
+      statusLegend(rows),
+      h('span', { class: 'topbar-spacer' }),
       h('button', {
-        class: 'btn', type: 'button',
+        class: 'btn btn-ghost', type: 'button',
         onclick: () => { collapsed.clear(); apply(); },
       }, 'Expand all'),
       h('button', {
-        class: 'btn', type: 'button',
+        class: 'btn btn-ghost', type: 'button',
         onclick: () => {
           items.forEach(it => { if (it.kids) collapsed.add(it.row.variant); });
           apply();
         },
       }, 'Collapse all')));
+  } else {
+    const legend = statusLegend(rows);
+    if (legend) wrap.append(h('div', { class: 'toolbar lineage-toolbar' }, legend));
   }
 
-  // Small trees start fully open; a big one starts folded below depth 2 so the
-  // page opens at the idea level rather than as a wall.
-  if (rows.length > 40) {
-    items.forEach(it => { if (it.kids && it.row.indent >= 2) collapsed.add(it.row.variant); });
-  }
   apply();
 
   items.forEach(it => list.append(it.li));
@@ -1397,11 +1447,10 @@ function lineageView(project) {
   return wrap;
 }
 
-function lineageRow(project, row, provenanceBy) {
+function lineageRow(project, row, provenanceBy, nameOf) {
   const li = h('li', { class: `lineage-row status-${row.status || 'active'}` });
   li.dataset.variant = row.variant;
 
-  const status = STATUS_LABEL[row.status] || null;
   const parents = row.parents || [];
 
   const head = h('div', { class: 'lineage-head' },
@@ -1410,46 +1459,56 @@ function lineageRow(project, row, provenanceBy) {
       href: `#/p/${encodeURIComponent(project.slug)}/v/${encodeURIComponent(row.variant)}`,
       title: row.variant,
     }, row.variant_name || row.variant),
-    status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
-    h('span', { class: 'badge badge-info' },
-      `${row.run_count} run${row.run_count === 1 ? '' : 's'}`),
+    statusBadgeFor(row.status),
+    h('a', {
+      class: 'badge badge-info',
+      href: `#/p/${encodeURIComponent(project.slug)}/v/${encodeURIComponent(row.variant)}`,
+      title: 'Open this variant\u2019s run table',
+    }, `${row.run_count} run${row.run_count === 1 ? '' : 's'}`),
     row.last_activity
       ? h('span', { class: 'xsmall faint nowrap', title: fmtDate(row.last_activity) },
           fmtAgo(row.last_activity))
       : null);
 
+  // The primary parent's note answers "why did this idea follow from that one?" —
+  // the owner asked for exactly this prose, so it renders as a labelled line of
+  // text, in full. It was a truncated italic mono chip, which read as debug output.
+  let whyLine = null;
   const meta = h('div', { class: 'lineage-meta' });
-  // The primary derived-from parent is already told by the indentation, so its
-  // chip would repeat the tree; if the edge carries a note, the note (the "why")
-  // is the part worth showing. Composes/replicates and extra parents keep full
-  // chips -- those are exactly what indentation cannot express.
   parents.forEach((p, i) => {
     const primaryDerived = i === 0 && p.variant === row.primary_parent
       && p.relation === 'derived-from';
     if (primaryDerived) {
-      if (p.note) meta.append(h('span', { class: 'chip chip-why', title: `why: ${p.note}` },
-        truncate(p.note, 70)));
+      if (p.note) whyLine = h('div', { class: 'lg-why' },
+        h('span', { class: 'lg-why-label' }, 'why:'), ' ', p.note);
       return;
     }
-    meta.append(h('span', { class: 'chip', title: [p.variant, p.note ? `why: ${p.note}` : null].filter(Boolean).join(' — ') },
-      `${RELATION_LABEL[p.relation] || p.relation} ${p.variant_name || p.variant}`));
+    // Composes / replicates and second parents are what indentation cannot say,
+    // so they stay visible as chips — prose-set, with the display name.
+    meta.append(h('span', {
+      class: 'chip chip-rel',
+      title: p.note ? `why: ${p.note}` : (nameOf && nameOf[p.variant]) || p.variant,
+    },
+      h('strong', {}, RELATION_LABEL[p.relation] || p.relation), '\u00a0',
+      (p.variant_name || (nameOf && nameOf[p.variant]) || p.variant)));
   });
   (provenanceBy[row.variant] || []).forEach(parent => meta.append(
     // Checkpoint provenance is a different graph from idea lineage and must never
     // be mistaken for it, so it is a chip and never a rail.
-    h('span', { class: 'chip chip-prov', title: 'checkpoint provenance, not idea lineage' },
-      `↥ warm-started from ${parent}`)));
+    h('span', { class: 'chip chip-rel chip-prov', title: 'checkpoint provenance (which trained network it started from), not idea lineage' },
+      '\u21a5 warm-started from ', (nameOf && nameOf[parent]) || parent)));
 
   const body = h('div', { class: 'lineage-body' },
     head,
+    whyLine,
     meta.childNodes.length ? meta : null,
     row.description
-      ? h('div', { class: 'lineage-gist' }, expandable(row.description, 200))
+      ? h('div', { class: 'lineage-gist' }, row.description)
       : h('div', { class: 'lineage-gist faint' }, 'No description recorded.'),
     row.conclusion
       ? h('div', { class: 'lineage-verdict' },
-          h('span', { class: 'callout-label' }, 'concluded'),
-          expandable(row.conclusion, 200))
+          h('span', { class: 'verdict-label' }, 'Conclusion'), ' ',
+          row.conclusion)
       : null);
 
   const gutter = treeGutter(row);

@@ -30,6 +30,15 @@ export class Node {
       n instanceof Node ? n : new Text(String(n))));
   }
 
+  prepend(...nodes) {
+    const made = nodes.map(n => {
+      const node = n instanceof Node ? n : new Text(String(n));
+      node.parentNode = this;
+      return node;
+    });
+    this.childNodes.unshift(...made);
+  }
+
   removeChild(node) {
     const i = this.childNodes.indexOf(node);
     if (i >= 0) this.childNodes.splice(i, 1);

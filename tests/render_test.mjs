@@ -96,6 +96,12 @@ console.log('\nstylesheet invariants');
   const anywhere = css.match(/overflow-wrap:\s*anywhere/g) || [];
   check('no overflow-wrap: anywhere in the stylesheet', anywhere.length === 0,
     `${anywhere.length} occurrence(s)`);
+
+  // The fold badge toggles class "hidden"; for one release that class had no CSS
+  // rule, so "N hidden" labels showed permanently on every parent row.
+  check('a .hidden utility rule exists (JS toggles it)',
+    /\.hidden\s*\{[^}]*display:\s*none/.test(css),
+    'class toggled in JS but never defined in CSS');
 }
 
 console.log('\nrelative time (a system of record must not misdate its own runs)');
@@ -152,6 +158,14 @@ console.log('\nproject story (#/p/fixture-project)');
     app.findAll(e => hasClass(e, 'lg-dot')).length === 2);
   check('shows the idea in the row', t.includes('Increase encoder depth'));
   check('shows the conclusion in the row', t.includes('Did not help'));
+  // Owner UX verdict, round two: full descriptions BY DEFAULT — the fixture
+  // description is 414 characters, longer than every clamp this page ever had.
+  check('the full description renders unclamped (no "…")',
+    t.includes('unclamped, everywhere.'),
+    'descriptions must render whole, not behind a more-link');
+  check('no more/less clamp controls anywhere',
+    app.findAll(e => String(e.className || '').includes('morelink')).length === 0);
+  check('the conclusion is labelled in plain language', t.includes('Conclusion'));
   check('says plainly when no lineage is recorded', t.includes('No idea-lineage recorded yet'));
   check('offers a verdict tally', t.includes('have a recorded conclusion'));
   check('offers both tabs', !!app.find(e => e.className.includes('tab') && e.textContent === 'Story')
@@ -168,6 +182,23 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
     return gists.length === 2
       && gists.some(g => g.textContent.includes('Increase encoder depth'));
   })(), 'explanations must not be hidden behind a click');
+  check('the collapsed summary carries the FULL description', (() => {
+    const gists = app.findAll(e => String(e.className || '').includes('variant-gist'));
+    return gists.some(g => g.textContent.includes('unclamped, everywhere.'));
+  })(), 'owner verdict: full description by default, not a 190-char clamp');
+  check('the conclusion is visible without expanding', (() => {
+    const verdicts = app.findAll(e => String(e.className || '').includes('variant-verdict'));
+    return verdicts.some(v => v.textContent.includes('Did not help'));
+  })(), 'the verdict is what a reader scans for');
+  check('the description is not duplicated inside the panel body', (() => {
+    const panel = app.find(e => e.tagName === 'DETAILS' && String(e.className).includes('variant'));
+    if (!panel) return false;
+    const hits = panel.findAll(e =>
+      e.textContent === panel.find(x => String(x.className).includes('variant-gist')).textContent);
+    // The gist exists once; the old layout repeated the same text in .panel-body.
+    const bodies = panel.findAll(e => String(e.className || '').includes('panel-body'));
+    return !bodies.some(b => b.textContent.includes('Increase encoder depth'));
+  })(), 'prose lives in the summary now; the body is for evidence');
   check('nothing is expanded by default', (() => {
     const panels = app.findAll(e => e.tagName === 'DETAILS' && e.className.includes('variant'));
     return panels.length > 0 && panels.every(p => !p.hasAttribute('open'));

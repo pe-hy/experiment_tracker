@@ -23,3 +23,15 @@ echo "== render tests =="
 "$NODE" --check site/assets/app.js 2>/dev/null || {
   cp site/assets/app.js "$OUT/app.mjs"; "$NODE" --check "$OUT/app.mjs"; }
 "$NODE" tests/render_test.mjs "$OUT"
+
+# Fixtures prove the views; the click-through proves them on the data we actually
+# serve, driving folds, toggles and full-text rendering like a reader would.
+if ls data/projects/*/runs/*.json >/dev/null 2>&1; then
+  echo "== real-data click-through =="
+  REAL="$(mktemp -d)"
+  trap 'rm -rf "$OUT" "$REAL"' EXIT
+  "$PY" scripts/reindex.py --data data --out "$REAL/data"
+  "$NODE" tests/clickthrough_real.mjs "$REAL"
+else
+  echo "== real-data click-through skipped (no tracked projects) =="
+fi

@@ -580,8 +580,20 @@ details.panel.variant > summary::before {
 .variant-gist {
   margin-top: 3px;
   font-size: var(--fs-sm);
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text-muted);
+  overflow-wrap: break-word;
+  max-width: 78ch;
+}
+/* Same voice as the lineage verdict: the conclusion reads at full strength. */
+.variant-verdict {
+  margin-top: var(--s2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  padding-left: var(--s3);
+  border-left: 2px solid var(--ok);
+  color: var(--text);
+  max-width: 78ch;
   overflow-wrap: break-word;
 }
 
@@ -856,20 +868,27 @@ table.tbl td.count { color: var(--text-faint); }
   margin-top: var(--s1);
   font-size: var(--fs-sm);
   color: var(--text-muted);
-  line-height: 1.45;
-  max-width: 92ch;
+  line-height: 1.5;
+  max-width: 78ch;   /* full paragraphs now; 92ch was set for one clamped line */
 }
+/* The conclusion is the sentence a reader came for, so it gets full text colour
+   while the description above it stays muted — hierarchy by contrast, not size. */
 .lineage-verdict {
   margin-top: var(--s2);
   font-size: var(--fs-sm);
-  line-height: 1.45;
+  line-height: 1.5;
   padding-left: var(--s3);
   border-left: 2px solid var(--ok);
   max-width: 92ch;
+  color: var(--text);
 }
-.lineage-verdict .callout-label { display: block; }
-
-@media (max-width: 720px) {
+.verdict-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 650;
+  color: var(--ok);
+  margin-right: 2px;
 }
 
 /* --- 19. Cross-variant compare bar ------------------------------------- */
@@ -888,34 +907,82 @@ table.tbl td.count { color: var(--text-faint); }
 }
 .btn[disabled] { opacity: .55; cursor: default; }
 
-/* Lineage: the primary parent's note rendered as prose, not a parent-name echo. */
-.chip-why { font-style: italic; color: var(--text-faint); border-style: dashed; }
+/* --- 18b. Lineage interactions ------------------------------------------ */
 
-/* --- 18b. Lineage interactions & expandable prose ----------------------- */
-
-.morelink {
-  display: inline-block; border: none; background: none; padding: 0 2px;
-  font: inherit; font-size: var(--fs-xs); color: var(--accent);
-  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-}
-.morelink:hover { color: var(--text); }
-
+/* Rows hidden by a folded ancestor, and anything else that must vanish. The
+   previous fold badge toggled class "hidden" WITHOUT this rule existing, so every
+   parent row displayed a permanent "N hidden" label even when fully expanded. */
+.hidden    { display: none !important; }
 .lg-hidden { display: none; }
 
-.lg-foldcell { width: 22px; }
-.lg-fold {
-  position: absolute; left: 0; top: calc(var(--s3) + 0.62em);
-  transform: translateY(-50%);
-  width: 20px; height: 20px; line-height: 1;
-  border: 1px solid var(--line-strong); border-radius: 4px;
-  background: var(--surface); color: var(--text-muted);
-  font-size: 11px; cursor: pointer; padding: 0;
+/* The disclosure control sits immediately left of the name it controls — the
+   position every file tree trained readers on — with a 22px hit target and a
+   rotating mark instead of two glyphs swapped by JS. */
+.lg-chev, .lg-chev-spacer {
+  flex: none;
+  width: 22px; height: 22px;
+  align-self: center;
 }
-.lg-fold:hover { color: var(--text); border-color: var(--accent); }
+.lg-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: var(--radius-sm);
+  background: none; color: var(--text-faint);
+  cursor: pointer; padding: 0;
+}
+.lg-chev:hover { background: var(--surface-3); color: var(--text); }
+.lg-chev-mark {
+  width: 0; height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transform: rotate(90deg);
+  transition: transform .15s ease;
+}
+.lg-chev.is-folded .lg-chev-mark { transform: rotate(0deg); }
 
-.lg-foldbadge { cursor: pointer; border: none; font: inherit; font-size: var(--fs-xs); }
+/* Visible only while folded: a labelled count of what the fold is hiding,
+   and a second, larger target for unfolding. */
+.lg-foldbadge {
+  cursor: pointer;
+  border: 1px dashed var(--line-strong); border-radius: 999px;
+  background: var(--surface-2); color: var(--text-muted);
+  font: inherit; font-size: var(--fs-xs);
+  padding: 1px 8px; line-height: 1.7;
+}
+.lg-foldbadge:hover { color: var(--text); border-color: var(--accent); }
 
 .lineage-toolbar { margin-bottom: var(--s2); gap: var(--s2); }
+
+/* The "why" note on a primary edge — the reason one idea led to the next — is
+   prose the owner asked to see, so it is a labelled line, never a clamped chip. */
+.lg-why {
+  margin-top: var(--s1);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--text-muted);
+  max-width: 92ch;
+}
+.lg-why-label {
+  font-style: normal;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 650;
+  color: var(--text-faint);
+}
+
+/* Relation chips carry sentences ("composes Predict real move counts"), so they
+   are set in the text face; the mono chip face is for identifiers. */
+.chip-rel { font-family: var(--font-sans); white-space: normal; }
+.chip-rel strong { font-weight: 620; }
+
+/* One-line legend for the status dots; reuses the real dot styles at 9px. */
+.legend { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.legend-dot {
+  position: static; transform: none;
+  width: 9px; height: 9px; flex: none;
+}
 
 /* Deep trees on a phone: shrink the gutter instead of pushing prose off-screen. */
 @media (max-width: 640px) {
@@ -923,7 +990,6 @@ table.tbl td.count { color: var(--text-faint); }
   .lg-guide::before, .lg-elbow::before { left: 5px; }
   .lg-elbow::after { left: 5px; width: 7px; }
   .lg-dotcell { width: 16px; }
-  .lg-foldcell { width: 22px; }
 }
 
 /* Long slugs or metric names inside chips must wrap, not push the row wide. */

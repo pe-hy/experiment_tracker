@@ -679,6 +679,8 @@ def main():
                 "project": project_slug,
                 "project_name": project["name"],
                 "variant": run.get("variant"),
+                # Display name, so the landing-page feed never shows a join key.
+                "variant_name": run.get("variant_name"),
                 "run_id": run.get("run_id"),
                 "run_name": run.get("run_name"),
                 "status": run.get("status"),

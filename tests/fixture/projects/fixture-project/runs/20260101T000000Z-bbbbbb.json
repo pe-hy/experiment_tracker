@@ -1,9 +1,15 @@
 {
+ "finished_at": "2026-01-02T00:30:00Z",
+ "metrics": {
+  "val_accuracy": 0.4,
+  "val_loss": 0.99
+ },
+ "notes": "<script>alert(1)</script> and <img src=x onerror=alert(2)>",
+ "project": "fixture-project",
+ "run_name": "<script>alert(1)</script>",
  "schema_version": 1,
- "project": "fixture-project", "variant": "deeper-encoder",
- "variant_description": "Increase encoder depth from 12 to 16 layers to test whether capacity is the bottleneck.",
- "run_name": "<script>alert(1)</script>", "status": "failed",
- "started_at": "2026-01-02T00:00:00Z", "finished_at": "2026-01-02T00:30:00Z",
- "metrics": {"val_accuracy": 0.4, "val_loss": 0.99},
- "notes": "<script>alert(1)</script> and <img src=x onerror=alert(2)>"
+ "started_at": "2026-01-02T00:00:00Z",
+ "status": "failed",
+ "variant": "deeper-encoder",
+ "variant_description": "Increase encoder depth from 12 to 16 layers while holding width fixed, to test whether capacity is the limit on validation accuracy. If depth alone closes the gap we know the bottleneck was model size, not data quality; if it does not, the next experiment moves to data. This sentence pads the description well past two hundred characters so the tests can prove full text renders by default, unclamped, everywhere."
 }
