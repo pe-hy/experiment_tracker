@@ -1,0 +1,91 @@
+{
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "Regression control: reproduces the production rows exactly at the post-wiring revision.",
+ "config": {
+  "byref_flag": "off",
+  "config": "g16r6"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "evaluates",
+   "run_id": "20260821T054809Z-59619e"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7"
+ },
+ "finished_at": "2026-08-21T05:48:09Z",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "graded_mean_expansions": "min",
+  "graded_mean_moves": "min",
+  "graded_mean_regret": "min",
+  "graded_mean_seconds": "min",
+  "graded_pct_optimal": "max",
+  "graded_solve_rate": "max",
+  "graded_solved": "max",
+  "pooled_solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 345.903,
+  "frontier_mean_moves": 15.3714,
+  "frontier_mean_seconds": 77.6361,
+  "frontier_n": 134.0,
+  "frontier_solve_rate": 0.7836,
+  "frontier_solved": 105.0,
+  "graded_mean_expansions": 41.9335,
+  "graded_mean_moves": 8.1129,
+  "graded_mean_regret": 2.4355,
+  "graded_mean_seconds": 10.3788,
+  "graded_n": 316.0,
+  "graded_pct_optimal": 52.9032,
+  "graded_solve_rate": 0.981,
+  "graded_solved": 310.0,
+  "pooled_solved": 415
+ },
+ "notes": "supervised_valuenet FINDINGS 78; jobs 4670615/16/17/4670668.",
+ "primary_metric": "pooled_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:09Z",
+ "run_id": "20260821T054809Z-725ed7",
+ "run_name": "byref-ab-off",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "b2",
+  "ablation",
+  "g16r6"
+ ],
+ "variant": "byref-zero-shot-ab",
+ "variant_conclusion": "Supply is enormous, effect is noise-level (+3 frontier of 134, p=0.61): the training signal, not candidate supply, is the bottleneck - the language ceiling (99.6%) remains a language property, not a delivered result.",
+ "variant_description": "Zero-shot A/B of the by-reference candidate step at g16r6: the banked cap-20000 B2 nets benched with the by-reference proposal flag off vs on - measures the vocabulary's delivered value when the nets never saw a by-reference record (a lower bound on the step's worth).",
+ "variant_name": "byref-zero-shot-ab"
+}

@@ -1,0 +1,81 @@
+{
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "The original g24r4 MoveNet on the variants lab's 200-instance unseen-board exam: 101/200 at 7.78 moves - half the loop's solves, but wins both-solved moves 43/3 vs the loop line (the language-ceiling gap).",
+ "config": {
+  "config": "g24r4"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "evaluates",
+   "run_id": "20260723T070710Z-7c99c6"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "01:09:20",
+   "exit_code": "0:0",
+   "job_id": "4726038",
+   "job_name": "spr-var-fwdbase",
+   "nodelist": "acn36",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-21T05:48:12Z",
+ "metric_goals": {
+  "unseen_mean_expansions": "min",
+  "unseen_mean_moves": "min",
+  "unseen_mean_seconds": "min",
+  "unseen_solve_rate": "max",
+  "unseen_solved": "max"
+ },
+ "metrics": {
+  "unseen_mean_expansions": 688.455,
+  "unseen_mean_moves": 7.7822,
+  "unseen_mean_seconds": 156.5052,
+  "unseen_n": 200.0,
+  "unseen_solve_rate": 0.505,
+  "unseen_solved": 101.0
+ },
+ "notes": "Eval only (no new training); results/variants/baselines/forward_movenet_unseen.json; caveat: pre-rescue network (FINDINGS 86 applies to g16r8 only).",
+ "primary_metric": "unseen_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:12Z",
+ "run_id": "20260821T054812Z-f59564",
+ "run_name": "forward-supervised-g24r4-unseen-exam",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "forward",
+  "unseen-exam"
+ ],
+ "variant": "persize-forward-supervised",
+ "variant_description": "Per-size MoveNet guide for the forward primitive-move A*, trained on exact optimal move labels. Near-optimal on realized moves when it solves, but pays a large search cost; the moves-quality baseline of the study.",
+ "variant_name": "persize-forward-supervised"
+}

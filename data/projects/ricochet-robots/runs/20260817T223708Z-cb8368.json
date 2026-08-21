@@ -20,17 +20,18 @@
   "upstream": "origin/b1-language-extension-scaling-study",
   "upstream_commit": "e11c99e97a5ee26d07c23a331bf9fc987f94e169"
  },
- "conclusion": "Recorded arena row under the B2 convention (anytime, no prefix-check).",
+ "conclusion": "Pooled 357/450 vs forward 135; no second basin (val_regret spread 0.08 across 4 cold trainings).",
  "config": {
   "config": "g32r4",
-  "vocab": "b2"
+  "recipe": "policy 30 ep cold, value 25 ep cold"
  },
  "env": {
   "hostname": "login2",
   "python": "3.11.7"
  },
  "finished_at": "2026-08-17T22:37:08Z",
- "group": "g32r4-b2-seeds",
+ "group": "g32r4-headline-seeds",
+ "hypothesis": "Fresh seeds of the g32r4 headline pair reproduce the +47.8-pt pooled margin over forward.",
  "metric_goals": {
   "frontier_mean_expansions": "min",
   "frontier_mean_moves": "min",
@@ -42,8 +43,10 @@
   "mean_regret": "min",
   "mean_seconds": "min",
   "pct_optimal": "max",
+  "pooled_solved": "max",
   "solve_rate": "max",
-  "solved": "max"
+  "solved": "max",
+  "val_regret": "min"
  },
  "metrics": {
   "frontier_mean_expansions": 97.5491,
@@ -58,11 +61,14 @@
   "mean_seconds": 136.6803,
   "n": 175.0,
   "pct_optimal": 38.9937,
+  "pooled_n": 450,
+  "pooled_solved": 357,
   "solve_rate": 0.9086,
-  "solved": 159.0
+  "solved": 159.0,
+  "val_regret": 2.9434
  },
- "notes": "Sources: supervised_valuenet/scaling/results/g32r4/comparison_b2_seed21.json, supervised_valuenet/scaling/results/g32r4/comparison_ungraded_b2_seed21.json",
- "primary_metric": "solve_rate",
+ "notes": "Sources: supervised_valuenet/scaling/results/g32r4/comparison_b2_seed21.json, supervised_valuenet/scaling/results/g32r4/comparison_ungraded_b2_seed21.json | Re-attributed 2026-08-21 per supervised FINDINGS 83: these are seed replicates of the base-vocab headline pair (runs scaling/runs/g32r4/backward-*-base-seed21, job 4670569), benched under the B-language file convention; previously mis-filed under persize-backward-b2-language.",
+ "primary_metric": "pooled_solved",
  "project": "ricochet-robots",
  "project_name": "ricochet-robots",
  "recorded_at": "2026-08-20T17:47:27Z",
@@ -77,8 +83,8 @@
   "b2",
   "g32r4"
  ],
- "variant": "persize-backward-b2-language",
- "variant_conclusion": "Supply exists but supervision never taught the ranking: the B2 arms trail the base arms on graded exams; the extended language only pays off once the self-play loop trains on certified B2 plans.",
- "variant_description": "Backward planners trained to rank the extended B2 subgoal vocabulary (by-reference helpers, park repairs) from exact B2 corpora - does a richer plan language beat the base one under pure supervision?",
+ "variant": "headline-seed-replicates",
+ "variant_conclusion": "g32r4: all three fresh seeds at or above the headline (pooled 357-366 vs forward 135, median 361) - robust, no second basin. g16r8: bimodal - 1 of 3 seeds falls into the bad value basin and the pooled margin shrinks to +1.6 n.s.; median-of-3 418/450 vs forward 354; val_regret separates the basins before any benchmark.",
+ "variant_description": "Seed replicates of the per-rung backward headline pair (recipe verbatim, only --torch-seed varies) at the study's two headline rungs, to test whether the scale claims are seed-robust; paper rule: report median-of-3 with the band.",
  "variant_name": "persize-backward-b2-language"
 }

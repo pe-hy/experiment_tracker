@@ -1,0 +1,128 @@
+{
+ "artifacts": [
+  {
+   "bytes": 14721965,
+   "name": "policy",
+   "path": "runs/spr/variants/v04_deep_emit/policy/lightning_logs/version_0/checkpoints/epoch=1-step=398.ckpt"
+  },
+  {
+   "bytes": 11827453,
+   "name": "value",
+   "path": "runs/spr/variants/v04_deep_emit/value/lightning_logs/version_0/checkpoints/epoch=5-step=2388.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "Seed 7: frontier 171 vs control 160 (p=0.013).",
+ "config": {
+  "config": "g24r4",
+  "protocol": "matched (30 boards, 300 exp, warm from mix_b2mix_iter2)",
+  "vocab": "b2"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "initialised_from",
+   "run_id": "20260820T174740Z-c79334"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "02:44:14",
+   "exit_code": "0:0",
+   "job_id": "4719427",
+   "job_name": "spr-var-v04",
+   "nodelist": "acn01",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-21T05:48:10Z",
+ "group": "v04-seeds",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "gen_solved": "max",
+  "graded_mean_expansions": "min",
+  "graded_mean_moves": "min",
+  "graded_mean_regret": "min",
+  "graded_mean_seconds": "min",
+  "graded_pct_optimal": "max",
+  "graded_solve_rate": "max",
+  "graded_solved": "max",
+  "unseen_mean_expansions": "min",
+  "unseen_mean_moves": "min",
+  "unseen_mean_seconds": "min",
+  "unseen_solve_rate": "max",
+  "unseen_solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 286.2294,
+  "frontier_mean_moves": 19.7602,
+  "frontier_mean_seconds": 63.8577,
+  "frontier_n": 218.0,
+  "frontier_solve_rate": 0.7844,
+  "frontier_solved": 171.0,
+  "gen_instances": 334,
+  "gen_records": 7541,
+  "gen_solved": 296,
+  "graded_mean_expansions": 13.9612,
+  "graded_mean_moves": 9.9739,
+  "graded_mean_regret": 2.2913,
+  "graded_mean_seconds": 1.8788,
+  "graded_n": 232.0,
+  "graded_pct_optimal": 56.087,
+  "graded_solve_rate": 0.9914,
+  "graded_solved": 230.0,
+  "unseen_mean_expansions": 169.15,
+  "unseen_mean_moves": 14.2114,
+  "unseen_mean_seconds": 31.5914,
+  "unseen_n": 200.0,
+  "unseen_solve_rate": 0.875,
+  "unseen_solved": 175.0
+ },
+ "notes": "Variants lab (self_play_robots/variants/FINDINGS.md); results/variants/v04_deep_emit/; VERDICT.json.",
+ "primary_metric": "unseen_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:10Z",
+ "run_id": "20260821T054810Z-b04298",
+ "run_name": "varlab-v04-deep-emit",
+ "schema_version": 1,
+ "seed": 7,
+ "status": "completed",
+ "tags": [
+  "variants-lab",
+  "self-play",
+  "data"
+ ],
+ "variant": "varlab-deep-emit",
+ "variant_conclusion": "Replicated WIN on frontier solves (171 vs 160 p=0.013 at seed 7; 176 vs 155 p=0.0002 at seed 8; Fisher p=3.4e-5); adopted as the lab's default generation recipe.",
+ "variant_description": "Variants lab v04: emit training records from ALL expanded decisions (sibling completion on every expanded node) instead of only the principal path - 2.2x records per iteration at 3.8x generation wall-time.",
+ "variant_name": "varlab-deep-emit"
+}

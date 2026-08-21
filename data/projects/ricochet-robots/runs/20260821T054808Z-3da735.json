@@ -1,0 +1,69 @@
+{
+ "artifacts": [
+  {
+   "bytes": 12376851,
+   "name": "movenet",
+   "path": "supervised_valuenet/scaling/runs/g16r8/forward-rescue/s53-lr2e-4/lightning_logs/version_0/checkpoints/epoch=1-step=13362.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "Collapsed outright (top1 0.078).",
+ "config": {
+  "batch_size": 128,
+  "config": "g16r8",
+  "epochs": 8,
+  "lr": 0.0002
+ },
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7"
+ },
+ "finished_at": "2026-08-21T05:48:08Z",
+ "group": "fwd-rescue-grid",
+ "metric_goals": {
+  "val_policy_top1": "max"
+ },
+ "metrics": {
+  "val_policy_top1": 0.0779
+ },
+ "notes": "supervised_valuenet FINDINGS 86; jobs 4670585/4670586 (grid), scaling/runs/g16r8/forward-rescue/s53-lr2e-4/.",
+ "primary_metric": "val_policy_top1",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:08Z",
+ "run_id": "20260821T054808Z-3da735",
+ "run_name": "fwd-rescue-s53-lr2e-4",
+ "schema_version": 1,
+ "seed": 53,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "forward",
+  "tuning",
+  "g16r8"
+ ],
+ "variant": "forward-rescue-tune",
+ "variant_conclusion": "Best-of-9 is real but small: the rescued arm takes the gradable set perfectly (266/266) yet gains only 8 frontier puzzles - far below the pre-registered kill line; the backward margin stands at +11.3 pts pooled (p=1.7e-09).",
+ "variant_description": "A fair second chance for the forward MoveNet at its weakest-looking rung (16x16, 8 robots): 3 seeds x 3 learning rates with the control's recipe otherwise verbatim, one arm promoted by validation top-1 alone (test never read) - answers the 'weak opponent' objection with measurement.",
+ "variant_name": "forward-rescue-tune"
+}

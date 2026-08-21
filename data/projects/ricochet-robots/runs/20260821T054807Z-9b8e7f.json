@@ -1,0 +1,82 @@
+{
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "good basin (val_regret 0.6599); pooled 418/450 vs forward 354.",
+ "config": {
+  "config": "g16r8",
+  "recipe": "policy 25 ep cold, value 20 ep warm from value_v2"
+ },
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "02:44:40",
+   "exit_code": "0:0",
+   "job_id": "4670567",
+   "job_name": "rr-seedhl-g16r8-s53",
+   "nodelist": "acn67",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-21T05:48:07Z",
+ "group": "g16r8-headline-seeds",
+ "hypothesis": "Fresh seeds of the zero-shot B1 headline pair reproduce the +15.8-pt pooled margin over forward.",
+ "metric_goals": {
+  "base450_solved": "max",
+  "frontier_solved": "max",
+  "graded_solved": "max",
+  "pooled_solved": "max",
+  "val_regret": "min"
+ },
+ "metrics": {
+  "base450_n": 450,
+  "base450_solved": 429,
+  "frontier_n": 184,
+  "frontier_solved": 157,
+  "graded_n": 266,
+  "graded_solved": 261,
+  "pooled_n": 450,
+  "pooled_solved": 418,
+  "val_regret": 0.6599
+ },
+ "notes": "supervised_valuenet FINDINGS 84; sources scaling/results/g16r8/comparison{,_ungraded}_b2_seed53.json, analysis/artifacts/seed_headline_g16r8.json.",
+ "primary_metric": "pooled_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:07Z",
+ "run_id": "20260821T054807Z-9b8e7f",
+ "run_name": "headline-g16r8-seed53",
+ "schema_version": 1,
+ "seed": 53,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "seed-replicate",
+  "g16r8"
+ ],
+ "variant": "headline-seed-replicates",
+ "variant_conclusion": "g32r4: all three fresh seeds at or above the headline (pooled 357-366 vs forward 135, median 361) - robust, no second basin. g16r8: bimodal - 1 of 3 seeds falls into the bad value basin and the pooled margin shrinks to +1.6 n.s.; median-of-3 418/450 vs forward 354; val_regret separates the basins before any benchmark.",
+ "variant_description": "Seed replicates of the per-rung backward headline pair (recipe verbatim, only --torch-seed varies) at the study's two headline rungs, to test whether the scale claims are seed-robust; paper rule: report median-of-3 with the band.",
+ "variant_name": "headline-seed-replicates"
+}

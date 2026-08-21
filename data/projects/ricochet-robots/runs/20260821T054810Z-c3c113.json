@@ -1,0 +1,126 @@
+{
+ "artifacts": [
+  {
+   "bytes": 14721965,
+   "name": "policy",
+   "path": "runs/spr/variants/v00_control_s8/policy/lightning_logs/version_0/checkpoints/epoch=4-step=205.ckpt"
+  },
+  {
+   "bytes": 11827453,
+   "name": "value",
+   "path": "runs/spr/variants/v00_control_s8/value/lightning_logs/version_0/checkpoints/epoch=5-step=492.ckpt"
+  }
+ ],
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "Seed-8 control: graded 224, frontier 155, unseen 170 - bounds protocol seed noise at ~4-5 solves per exam.",
+ "config": {
+  "config": "g24r4",
+  "protocol": "matched (30 boards, 300 exp, warm from mix_b2mix_iter2)",
+  "vocab": "b2"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "initialised_from",
+   "run_id": "20260820T174740Z-c79334"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "01:41:59",
+   "exit_code": "0:0",
+   "job_id": "4726033",
+   "job_name": "spr-var-v00s8",
+   "nodelist": "acn36",
+   "num_nodes": "1",
+   "partition": "qgpu",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-21T05:48:10Z",
+ "group": "varlab-control-seeds",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "gen_solved": "max",
+  "graded_mean_expansions": "min",
+  "graded_mean_moves": "min",
+  "graded_mean_regret": "min",
+  "graded_mean_seconds": "min",
+  "graded_pct_optimal": "max",
+  "graded_solve_rate": "max",
+  "graded_solved": "max",
+  "unseen_mean_expansions": "min",
+  "unseen_mean_moves": "min",
+  "unseen_mean_seconds": "min",
+  "unseen_solve_rate": "max",
+  "unseen_solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 386.3716,
+  "frontier_mean_moves": 20.2065,
+  "frontier_mean_seconds": 87.9732,
+  "frontier_n": 218.0,
+  "frontier_solve_rate": 0.711,
+  "frontier_solved": 155.0,
+  "gen_instances": 325,
+  "gen_records": 3281,
+  "gen_solved": 291,
+  "graded_mean_expansions": 44.9698,
+  "graded_mean_moves": 9.7143,
+  "graded_mean_regret": 2.0982,
+  "graded_mean_seconds": 9.1749,
+  "graded_n": 232.0,
+  "graded_pct_optimal": 54.0179,
+  "graded_solve_rate": 0.9655,
+  "graded_solved": 224.0,
+  "unseen_mean_expansions": 210.66,
+  "unseen_mean_moves": 14.7529,
+  "unseen_mean_seconds": 41.5257,
+  "unseen_n": 200.0,
+  "unseen_solve_rate": 0.85,
+  "unseen_solved": 170.0
+ },
+ "notes": "Variants lab (self_play_robots/variants/FINDINGS.md); results/variants/v00_control_s8/; VERDICT.json.",
+ "primary_metric": "unseen_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:10Z",
+ "run_id": "20260821T054810Z-c3c113",
+ "run_name": "varlab-v00-control-s8",
+ "schema_version": 1,
+ "seed": 8,
+ "status": "completed",
+ "tags": [
+  "variants-lab",
+  "self-play"
+ ],
+ "variant": "varlab-control",
+ "variant_description": "Matched-budget control arm of the self-play variants lab: the current loop recipe run under the lab's frozen protocol (same seed boards, budget and warm start), so every structural variant is paired against one common reference.",
+ "variant_name": "varlab-control"
+}

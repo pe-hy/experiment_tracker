@@ -1,0 +1,101 @@
+{
+ "author": "p23131",
+ "code": {
+  "available": true,
+  "branch": "b1-language-extension-scaling-study",
+  "commit": "2531a856d0a1efc42c3edef928e9ede42313bf1b",
+  "commit_pushed": false,
+  "commit_short": "2531a856d0",
+  "commit_subject": "variants FINDINGS 7: v14 stack WINS unseen at both seeds (179/177 vs 172/170, Fisher ~0.016; s8 adds first unseen moves win) -- adopted as lab recipe",
+  "commit_time": "2026-08-21T07:43:25+02:00",
+  "describe": "2531a85",
+  "detached_head": false,
+  "dirty": false,
+  "forge": "github.com",
+  "owner": "Jan21",
+  "patch_kind": "none",
+  "remote_url": "https://github.com/Jan21/MCTS_evolution",
+  "repo": "MCTS_evolution",
+  "untracked_count": 107,
+  "upstream": "origin/b1-language-extension-scaling-study",
+  "upstream_commit": "fceb642e06e0c461dfd37cf887bc330298c22011"
+ },
+ "conclusion": "Rescued s37/1e-4: graded 266/266 (crown passes to forward outright), frontier 101/184, pooled 367 vs control 354 (p=0.035); backward median still +11.3 pts pooled (p=1.7e-09), +30.4 frontier.",
+ "config": {
+  "config": "g16r8",
+  "selected_cell": "s37-lr1e-4"
+ },
+ "derived_from": [
+  {
+   "project": "ricochet-robots",
+   "relation": "evaluates",
+   "run_id": "20260821T054808Z-b861d0"
+  }
+ ],
+ "env": {
+  "hostname": "login2",
+  "python": "3.11.7",
+  "slurm": {
+   "elapsed": "02:13:00",
+   "exit_code": "0:0",
+   "job_id": "4718158",
+   "job_name": "rr-fwdsel-g16r8",
+   "nodelist": "acn38",
+   "num_nodes": "1",
+   "partition": "qgpu_preempt",
+   "state": "COMPLETED"
+  }
+ },
+ "finished_at": "2026-08-21T05:48:09Z",
+ "metric_goals": {
+  "frontier_mean_expansions": "min",
+  "frontier_mean_moves": "min",
+  "frontier_mean_seconds": "min",
+  "frontier_solve_rate": "max",
+  "frontier_solved": "max",
+  "graded_mean_expansions": "min",
+  "graded_mean_moves": "min",
+  "graded_mean_regret": "min",
+  "graded_mean_seconds": "min",
+  "graded_pct_optimal": "max",
+  "graded_solve_rate": "max",
+  "graded_solved": "max",
+  "pooled_solved": "max"
+ },
+ "metrics": {
+  "frontier_mean_expansions": 745.3641,
+  "frontier_mean_moves": 8.8119,
+  "frontier_mean_seconds": 288.593,
+  "frontier_n": 184.0,
+  "frontier_solve_rate": 0.5489,
+  "frontier_solved": 101.0,
+  "graded_mean_expansions": 44.8985,
+  "graded_mean_moves": 5.2857,
+  "graded_mean_regret": 0.0977,
+  "graded_mean_seconds": 16.0265,
+  "graded_n": 266.0,
+  "graded_pct_optimal": 91.3534,
+  "graded_solve_rate": 1.0,
+  "graded_solved": 266.0,
+  "pooled_n": 450,
+  "pooled_solved": 367
+ },
+ "notes": "supervised_valuenet FINDINGS 86; replay-certified; analysis/artifacts/forward_rescue_g16r8.json.",
+ "primary_metric": "pooled_solved",
+ "project": "ricochet-robots",
+ "project_name": "ricochet-robots",
+ "recorded_at": "2026-08-21T05:48:09Z",
+ "run_id": "20260821T054809Z-692347",
+ "run_name": "fwd-rescue-selected-bench",
+ "schema_version": 1,
+ "status": "completed",
+ "tags": [
+  "supervised",
+  "forward",
+  "tuning",
+  "g16r8"
+ ],
+ "variant": "forward-rescue-tune",
+ "variant_description": "A fair second chance for the forward MoveNet at its weakest-looking rung (16x16, 8 robots): 3 seeds x 3 learning rates with the control's recipe otherwise verbatim, one arm promoted by validation top-1 alone (test never read) - answers the 'weak opponent' objection with measurement.",
+ "variant_name": "forward-rescue-tune"
+}
