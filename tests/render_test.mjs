@@ -179,6 +179,13 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
     const best = app.findAll(e => e.className.includes('best'));
     return best.some(e => e.textContent.includes('0.31'));
   })(), 'metric_goals says val_loss is min');
+  check('sorting keeps the same header element (focus survives)', (() => {
+    const th = app.findAll(e => e.tagName === 'TH' && e.className.includes('sortable'))[1];
+    const before = th;
+    th.dispatch('click');
+    const after = app.findAll(e => e.tagName === 'TH' && e.className.includes('sortable'))[1];
+    return before === after && after.hasAttribute('aria-sort');
+  })(), 'rebuilding thead drops keyboard focus to the top of the page');
   check('offers CSV export', text.includes('Copy CSV'));
   check('offers LaTeX export', text.includes('Copy LaTeX'));
 }

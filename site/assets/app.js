@@ -215,34 +215,57 @@ async function viewProjects(app) {
 }
 
 /** Latest runs across every project — the "what has been happening" view. */
+/* The feed is the one table here long enough to want a sticky header, and a sticky
+ * header cannot work inside a horizontally scrolling box. So it shows a readable
+ * slice and grows on request, instead of nesting a scrollbar inside the page. */
+const RECENT_VISIBLE = 20;
+
+function recentRow(r) {
+  const key = r.primary_metric && (r.metrics || {})[r.primary_metric] !== undefined
+    ? r.primary_metric
+    : Object.keys(r.metrics || {})[0];
+  const value = key ? (r.metrics || {})[key] : undefined;
+  return h('tr', {},
+    h('td', { class: 'faint nowrap', title: fmtDate(r.when) }, fmtAgo(r.when) || '—'),
+    h('td', {}, h('a', { href: `#/p/${encodeURIComponent(r.project)}` },
+      r.project_name || r.project)),
+    h('td', { class: 'faint' }, r.variant || '—'),
+    h('td', {}, h('a', {
+      href: `#/p/${encodeURIComponent(r.project)}/r/${encodeURIComponent(r.run_id)}`,
+    }, r.run_name || r.run_id)),
+    h('td', {}, statusBadge(r.status)),
+    h('td', { class: 'num' },
+      typeof value === 'number' ? `${key} ${fmtNumber(value)}` : '—'));
+}
+
 function recentPanel(runs) {
+  const tbody = h('tbody', {}, runs.slice(0, RECENT_VISIBLE).map(recentRow));
   const table = h('table', { class: 'tbl' },
     h('thead', {}, h('tr', {},
       h('th', {}, 'When'), h('th', {}, 'Project'), h('th', {}, 'Variant'),
       h('th', {}, 'Run'), h('th', {}, 'Status'), h('th', { class: 'num' }, 'Result'))),
-    h('tbody', {},
-      runs.map(r => {
-        const key = r.primary_metric && (r.metrics || {})[r.primary_metric] !== undefined
-          ? r.primary_metric
-          : Object.keys(r.metrics || {})[0];
-        const value = key ? (r.metrics || {})[key] : undefined;
-        return h('tr', {},
-          h('td', { class: 'faint nowrap', title: fmtDate(r.when) }, fmtAgo(r.when) || '—'),
-          h('td', {}, h('a', { href: `#/p/${encodeURIComponent(r.project)}` },
-            r.project_name || r.project)),
-          h('td', { class: 'faint' }, r.variant || '—'),
-          h('td', {}, h('a', {
-            href: `#/p/${encodeURIComponent(r.project)}/r/${encodeURIComponent(r.run_id)}`
-          }, r.run_name || r.run_id)),
-          h('td', {}, statusBadge(r.status)),
-          h('td', { class: 'num' }, typeof value === 'number'
-            ? `${key} ${fmtNumber(value)}` : '—'));
-      })));
+    tbody);
+
+  const footer = h('div', { class: 'panel-body' });
+  if (runs.length > RECENT_VISIBLE) {
+    const button = h('button', { class: 'btn btn-ghost', type: 'button' },
+      `Show all ${runs.length}`);
+    button.addEventListener('click', () => {
+      runs.slice(RECENT_VISIBLE).forEach(r => tbody.append(recentRow(r)));
+      clear(footer);
+      footer.append(h('span', { class: 'xsmall faint' },
+        `Showing all ${runs.length} runs.`));
+    });
+    footer.append(button,
+      h('span', { class: 'xsmall faint' },
+        ` newest ${RECENT_VISIBLE} of ${runs.length}`));
+  }
 
   return h('details', { class: 'panel mt-4', open: '' },
     h('summary', {}, 'Recent activity across all projects',
       h('span', { class: 'badge badge-info' }, String(runs.length))),
-    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)));
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)),
+    runs.length > RECENT_VISIBLE ? footer : null);
 }
 
 function projectCard(p) {
@@ -600,34 +623,49 @@ function runTable(project, variant) {
     return '';
   };
 
-  const renderHead = () => {
-    clear(thead);
+  // Headers are built once and then mutated. Rebuilding them on every sort removes
+  // the element the user is standing on, which drops keyboard focus back to the top
+  // of the document — you cannot sort twice in a row without re-tabbing.
+  const sortable = [];
+  const buildHead = () => {
     const tr = h('tr');
     headers.forEach(col => {
       if (col.plain) { tr.append(h('th', { style: 'width:28px' })); return; }
       let label = [col.label];
       if (col.metric) {
         const { suite, base } = splitMetricKey(col.metric);
-        label = suite
-          ? [h('span', { class: 'suite' }, suite), base]
-          : [base];
+        label = suite ? [h('span', { class: 'suite' }, suite), base] : [base];
       }
+      const arrow = h('span', { class: 'arrow' });
       const th = h('th', {
         class: 'sortable', role: 'columnheader', tabindex: '0',
         title: col.metric || null,
-      }, ...label, h('span', { class: 'arrow' }, sortDesc ? '▼' : '▲'));
-      if (sortKey === col.key) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending');
+      }, ...label, arrow);
       const activate = () => {
         if (sortKey === col.key) sortDesc = !sortDesc;
         else { sortKey = col.key; sortDesc = true; }
-        renderHead(); renderBody();
+        updateHead(); renderBody();
       };
       th.addEventListener('click', activate);
-      th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+      th.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+      });
+      sortable.push({ col, th, arrow });
       tr.append(th);
     });
     thead.append(tr);
   };
+
+  const updateHead = () => {
+    sortable.forEach(({ col, th, arrow }) => {
+      const active = sortKey === col.key;
+      if (active) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending');
+      else th.removeAttribute('aria-sort');
+      arrow.textContent = sortDesc ? '▼' : '▲';
+    });
+  };
+
+  const renderHead = () => { buildHead(); updateHead(); };
 
   const renderBody = () => {
     clear(tbody);
