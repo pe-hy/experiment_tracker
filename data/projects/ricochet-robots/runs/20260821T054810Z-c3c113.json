@@ -121,7 +121,8 @@
   "self-play"
  ],
  "variant": "varlab-control",
- "variant_description": "Matched-budget control arm of the self-play variants lab: the current loop recipe run under the lab's frozen protocol (same seed boards, budget and warm start), so every structural variant is paired against one common reference.",
+ "variant_conclusion": "Reference numbers only; the two seeds bound normal run-to-run luck at about 4-5 solved puzzles per exam.",
+ "variant_description": "We ran the self-play loop one more time with nothing changed. This is the yardstick: every experiment in the variants lab is compared against these numbers. Any change worth keeping must beat 'just keep doing what we were doing'. Run at two seeds to know how big ordinary luck is.",
  "variant_name": "Variants lab: control recipe",
  "variant_role": "control",
  "variant_status": "active"

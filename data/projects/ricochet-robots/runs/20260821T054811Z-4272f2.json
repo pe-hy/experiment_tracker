@@ -122,7 +122,8 @@
   "targets"
  ],
  "variant": "varlab-strict-moves-value",
- "variant_description": "Variants lab v09: train the value net on realized STRICT move counts - the benchmark metric itself - instead of abstract plan cost; no arm in the project had ever trained on the metric.",
+ "variant_conclusion": "The lab's best single change, confirmed at both seeds: better on every exam and the smallest 'extra moves versus perfect play' of the program. Adopted.",
+ "variant_description": "Until now the value network learned to predict an abstract 'plan cost'. We changed it to predict the actual number of moves the robots end up making - the number the whole project is graded on. You get what you train for.",
  "variant_name": "Predict real move counts, not plan cost",
  "variant_status": "adopted"
 }

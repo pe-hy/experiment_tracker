@@ -65,8 +65,8 @@
   "g24r4"
  ],
  "variant": "label-corruption-dose",
- "variant_conclusion": "Causality answered NO (supervised FINDINGS 85, jobs 4693020/21/22): the dose-response on argmin agreement is flat 100->86->82.2 - d822 is nominally the BEST arm in the g24r4 table. Argmin agreement is a validated cheap PREDICTOR of label-set damage, not the causal lever; the g24r8 twin collapse is robot-count / error-structure linked (2-seed confirmed), not argmin-fidelity linked.",
- "variant_description": "Retrain the g24r4 backward pair on exact labels corrupted to a controlled argmin-agreement dose, to measure how much label fidelity the planner actually needs before bench quality degrades.",
+ "variant_conclusion": "Surprise: even at the worst dose the planner trained fine (the most-corrupted arm was nominally the best of the table). Label accuracy was NOT what broke the 8-robot twin - that hypothesis is refuted.",
+ "variant_description": "We deliberately fed the trainer increasingly wrong labels to see how much error the planner can actually tolerate - dialing label quality down in controlled steps to exactly the level where the 8-robot twin had collapsed.",
  "variant_name": "Does label corruption break the planner?",
  "variant_status": "refuted"
 }

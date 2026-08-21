@@ -80,8 +80,8 @@
   "g32r4"
  ],
  "variant": "persize-backward-b2-language",
- "variant_conclusion": "Supply exists but supervision never taught the ranking: the B2 arms trail the base arms on graded exams; the extended language only pays off once the self-play loop trains on certified B2 plans.",
- "variant_description": "Backward planners trained to rank the extended B2 subgoal vocabulary (by-reference helpers, park repairs) from exact B2 corpora - does a richer plan language beat the base one under pure supervision?",
+ "variant_conclusion": "The richer vocabulary alone did not help under plain supervision - the networks never learned to rank the new plan steps. It paid off only later, when self-play generated its own training examples of them.",
+ "variant_description": "We gave the backward planner a richer vocabulary of subgoals - called B2: extra plan steps like 'park this robot out of the way for later' - and trained it on perfect examples of that richer language, hoping for shorter solutions. Technically: supervised pairs on exact B2 corpora, benched without the usual pre-filter (parked plans cannot be pre-checked).",
  "variant_name": "Extended plan language (B2), supervised",
  "variant_status": "superseded"
 }

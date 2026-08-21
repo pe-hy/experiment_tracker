@@ -75,7 +75,8 @@
   "g24r4"
  ],
  "variant": "persize-backward-supervised",
- "variant_description": "Per-size PolicyTF policy + LoopedValueNet value trained on exact solver labels: the backward subgoal planner at one fixed board size. This is the frozen 'backward supervised' baseline every self-play arm is gated against.",
+ "variant_conclusion": "A solid solver but far from perfect play; the self-play line later beats it clearly - which is exactly the comparison it exists to anchor.",
+ "variant_description": "A planner that works backwards from the goal, taught by copying a perfect solver's answers, with one network per board size. This is the study's main reference point: every later experiment must beat it. Technically: PolicyTF policy + LoopedValueNet value pairs trained on exact solver labels, benched at a fixed search budget of 1200 expansions (positions the search may examine), every solution physics-replayed before it counts.",
  "variant_name": "Backward planner (supervised baseline)",
  "variant_role": "baseline",
  "variant_status": "done"

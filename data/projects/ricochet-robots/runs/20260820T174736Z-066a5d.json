@@ -103,8 +103,8 @@
   "g24r4"
  ],
  "variant": "base-selfplay-loop-24x24",
- "variant_conclusion": "Flat, as the ceiling study predicted: nothing left to learn in the base vocabulary; the loop moved to the B2 vocabulary.",
- "variant_description": "AlphaZero-style certified self-play loop in the BASE subgoal vocabulary at 24x24: MCTS generation on fresh lean boards, physics-certified labels, warm retrain each iteration. Negative control: the supervised nets already saturate this language's ceiling.",
+ "variant_conclusion": "Flat, as predicted: with the original vocabulary the supervised networks were already at the language's ceiling - there was nothing left to learn. The loop needed a richer language, which is what the next variant tried.",
+ "variant_description": "The AlphaZero idea adapted to puzzles: the planner searches, physics-checks the solutions it finds (so no wrong label can ever enter), retrains on them, and repeats. This first attempt used the planner's original subgoal vocabulary at 24x24.",
  "variant_name": "Self-play loop, base language (24x24)",
  "variant_status": "refuted"
 }

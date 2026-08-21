@@ -63,8 +63,8 @@
   "g16r8"
  ],
  "variant": "forward-rescue-tune",
- "variant_conclusion": "Best-of-9 is real but small: the rescued arm takes the gradable set perfectly (266/266) yet gains only 8 frontier puzzles - far below the pre-registered kill line; the backward margin stands at +11.3 pts pooled (p=1.7e-09).",
- "variant_description": "A fair second chance for the forward MoveNet at its weakest-looking rung (16x16, 8 robots): 3 seeds x 3 learning rates with the control's recipe otherwise verbatim, one arm promoted by validation top-1 alone (test never read) - answers the 'weak opponent' objection with measurement.",
+ "variant_conclusion": "Tuning helped a little - a perfect score on the puzzles with known answers, +13 solved overall - but nowhere near enough: the backward planner still wins by a wide margin. The scale claim survives its fairness test.",
+ "variant_description": "A fairness check demanded by review: maybe the forward planner only lost because it was under-tuned. We gave it nine fresh training runs (3 seeds x 3 learning rates) and promoted the best by validation score alone - never by peeking at the test set.",
  "variant_name": "Forward planner: a fair re-tune",
  "variant_status": "done"
 }

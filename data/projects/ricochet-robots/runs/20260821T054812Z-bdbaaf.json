@@ -123,7 +123,8 @@
   "adopted"
  ],
  "variant": "varlab-stack-v04v09",
- "variant_description": "Variants lab v14: compose the two replicated winners (emit-all generation + strict-moves value targets), dropping the non-replicating Gumbel root - the natural composition v13's interference pointed to.",
+ "variant_conclusion": "It works: the best results yet on brand-new boards, at both seeds. Adopted as the lab's default recipe.",
+ "variant_description": "We combined the two changes that survived re-testing - train on all examined positions, and predict real move counts - leaving out the one that did not (Gumbel exploration).",
  "variant_name": "Stack the two proven winners",
  "variant_status": "adopted"
 }

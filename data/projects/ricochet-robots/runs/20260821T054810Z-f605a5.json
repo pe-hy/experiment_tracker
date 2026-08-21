@@ -122,8 +122,8 @@
   "search"
  ],
  "variant": "varlab-gumbel-root",
- "variant_conclusion": "Did not replicate: the seed-7 graded-moves win (19/6, p=0.015) reversed at seed 8 (14/16, p=0.86); frontier suggestive only (Fisher p=0.04). Within seed noise for one-iteration arms; dropped from the composed recipe.",
- "variant_description": "Variants lab v06: Gumbel-top-m root sampling with sequential halving at the root during generation (Gumbel-AlphaZero style) instead of PUCT root expansion.",
+ "variant_conclusion": "Looked like a win on the first seed, vanished on the second - the honest verdict is 'within luck'. Dropped from the combined recipe.",
+ "variant_description": "We changed how the search explores its FIRST decision: instead of a random sprinkle of exploration noise, a principled lottery (the 'Gumbel' method) that provably improves the policy even with a tiny search budget. Published results show the biggest gains at exactly our small budgets.",
  "variant_name": "Gumbel lottery exploration at the root",
  "variant_status": "inconclusive"
 }

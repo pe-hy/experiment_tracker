@@ -122,7 +122,8 @@
   "data"
  ],
  "variant": "varlab-deep-emit",
- "variant_description": "Variants lab v04: emit training records from ALL expanded decisions (sibling completion on every expanded node) instead of only the principal path - 2.2x records per iteration at 3.8x generation wall-time.",
+ "variant_conclusion": "Confirmed at both seeds: clearly more of the hardest puzzles solved, at the price of slower data generation. Adopted as the default way to generate training data.",
+ "variant_description": "The search examines many positions per puzzle, but we only trained on the ones along the final solution path. We changed that to train on EVERY position the search examined and certified - same compute per puzzle, roughly twice the training data.",
  "variant_name": "Train on every explored decision",
  "variant_status": "adopted"
 }

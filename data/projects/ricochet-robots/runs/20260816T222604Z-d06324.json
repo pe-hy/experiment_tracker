@@ -81,7 +81,8 @@
   "g32r4"
  ],
  "variant": "nn-labeled-twin-retrain",
- "variant_description": "Retrain per-size backward planners on corpora labeled by the size-free NN labeler instead of the exact solver ('twin'; 'deploy' = labeler-generated boards too), to test whether NN labels can replace exact supervision at scale.",
+ "variant_conclusion": "At 4 robots the NN-labeled planners match the exact-taught ones. At 8 robots - the crowded, hard mode - the twin collapsed: the one real failure, later traced to error structure rather than label accuracy.",
+ "variant_description": "We retrained planners on data labeled by our own network (the size-free labeler) instead of the exact solver, to see whether the slow solver can be dropped from the pipeline entirely. 'Twin' = same boards with NN labels; 'deploy' = NN-generated boards too.",
  "variant_name": "Retrain on NN labels instead of exact ('twin')",
  "variant_status": "done"
 }

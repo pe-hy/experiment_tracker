@@ -64,7 +64,8 @@
   "g32r4"
  ],
  "variant": "persize-forward-supervised",
- "variant_description": "Per-size MoveNet guide for the forward primitive-move A*, trained on exact optimal move labels. Near-optimal on realized moves when it solves, but pays a large search cost; the moves-quality baseline of the study.",
+ "variant_conclusion": "Kept as the quality bar: when it solves a puzzle its answer is nearly perfect, and no subgoal-based planner has matched that on solution length.",
+ "variant_description": "A planner that plays the game forward one robot-move at a time, guided by a network taught from perfect solutions. When it solves a puzzle it is nearly perfect on solution length, but it searches slowly and gives up more often than the backward planner. Technically: a per-size MoveNet guiding A* over single moves.",
  "variant_name": "Forward move planner (supervised baseline)",
  "variant_role": "baseline",
  "variant_status": "done"

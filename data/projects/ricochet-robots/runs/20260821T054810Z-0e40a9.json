@@ -122,8 +122,8 @@
   "negative-result"
  ],
  "variant": "varlab-visit-policy-targets",
- "variant_conclusion": "Decisive loss: every exam collapses at p<=1e-7 (graded 202 vs 228, frontier 118 vs 160, unseen 142 vs 172); the control's cost-based target is load-bearing, not incidental. Kept as a documented negative result.",
- "variant_description": "Variants lab v01: replace the certified-cost softmax policy target with the AlphaZero-textbook MCTS visit-count distribution, testing whether the standard target transfers to certified single-agent planning at small search budgets.",
+ "variant_conclusion": "Rejected decisively: everything got much worse on every exam. Our cost-based teaching signal is better than the textbook one here; kept as a documented negative result.",
+ "variant_description": "We changed WHICH choices the policy network is taught to prefer. Before: 'prefer candidates that led to short solutions'. After: 'prefer candidates the search spent the most time exploring' - the classic AlphaZero recipe. The search's attention might carry information that solution costs alone miss.",
  "variant_name": "Teach the policy from visit counts (AlphaZero-style)",
  "variant_status": "refuted"
 }

@@ -76,8 +76,8 @@
   "g16r8"
  ],
  "variant": "headline-seed-replicates",
- "variant_conclusion": "g32r4: all three fresh seeds at or above the headline (pooled 357-366 vs forward 135, median 361) - robust, no second basin. g16r8: bimodal - 1 of 3 seeds falls into the bad value basin and the pooled margin shrinks to +1.6 n.s.; median-of-3 418/450 vs forward 354; val_regret separates the basins before any benchmark.",
- "variant_description": "Seed replicates of the per-rung backward headline pair (recipe verbatim, only --torch-seed varies) at the study's two headline rungs, to test whether the scale claims are seed-robust; paper rule: report median-of-3 with the band.",
+ "variant_conclusion": "The 32x32 result is rock-solid (all three seeds as good or better than the original). The 16x16 8-robot result is bimodal: one seed in three lands in a bad training basin, so both headlines are now reported as the median of three runs.",
+ "variant_description": "Neural-network training involves luck (the random seed). We re-ran the study's two headline results three times each with fresh seeds to check they were not lucky draws - same recipe, same data, only the seed changes.",
  "variant_name": "Headline results re-run on fresh seeds",
  "variant_status": "done"
 }

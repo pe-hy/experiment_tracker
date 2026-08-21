@@ -122,7 +122,8 @@
   "search"
  ],
  "variant": "varlab-gumbel-root",
- "variant_description": "Variants lab v06: Gumbel-top-m root sampling with sequential halving at the root during generation (Gumbel-AlphaZero style) instead of PUCT root expansion.",
+ "variant_conclusion": "Looked like a win on the first seed, vanished on the second - the honest verdict is 'within luck'. Dropped from the combined recipe.",
+ "variant_description": "We changed how the search explores its FIRST decision: instead of a random sprinkle of exploration noise, a principled lottery (the 'Gumbel' method) that provably improves the policy even with a tiny search budget. Published results show the biggest gains at exactly our small budgets.",
  "variant_name": "Gumbel lottery exploration at the root",
  "variant_status": "inconclusive"
 }

@@ -95,8 +95,8 @@
   "supervised"
  ],
  "variant": "sizefree-labeler-pe-none",
- "variant_conclusion": "Held: argmin agreement 0.85-0.92 at 8-32 and still 0.81-0.85 at 40-64 (zero-shot); adopted as the bootstrap value net and encoder template for every size-free arm.",
- "variant_description": "Size-free LoopedValueNet labeler (pe=none, HL-Gauss 96 bins) trained on exact corpora at 8-16 boards only; it has no size-dependent parameters, so one checkpoint labels any board size. The bet: fidelity holds far beyond the training sizes.",
+ "variant_conclusion": "It worked: on boards up to 64x64 - four times its training size - it picks a truly best candidate 81-92% of the time, and it seeded nearly every later network in the project.",
+ "variant_description": "A network that estimates how many steps a plan still needs, used to label training data instead of a slow exact solver. Its trick: nothing in it is tied to a specific board size, so one network trained only on small boards (8-16) can label boards of any size. Technically: LoopedValueNet, no positional encoding, trained on exact labels at 8x8-16x16.",
  "variant_name": "Size-free value labeler",
  "variant_status": "adopted"
 }

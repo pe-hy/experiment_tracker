@@ -122,8 +122,8 @@
   "curriculum"
  ],
  "variant": "varlab-frontier-curriculum",
- "variant_conclusion": "Flat at one iteration (records -29%, no exam moves); the compounding test (3-iteration chain) is running as wave 3.",
- "variant_description": "Variants lab v12: probe-and-reject instance mining - generation budget redirected to instances the current net fails, testing whether a self-generated curriculum compounds across iterations.",
+ "variant_conclusion": "No effect after one round (and a third less training data). A three-round chain is running to test whether the drilling compounds.",
+ "variant_description": "Instead of practicing on random puzzles, the loop first screens each puzzle with a quick attempt and only practices on the ones it FAILS - like a student drilling only the exercises they get wrong. The loop had stalled because most random puzzles were already easy for it.",
  "variant_name": "Practice on the puzzles it fails",
  "variant_status": "active"
 }
