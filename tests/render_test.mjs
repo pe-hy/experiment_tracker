@@ -119,6 +119,12 @@ console.log('\nproject list (#/)');
   check('shows the cross-project recent-activity feed',
     text.includes('Recent activity across all projects'));
   check('recent feed lists a run from the second project', text.includes('Second Project'));
+  check('the feed does not headline a count as a result', (() => {
+    // The fixture run declares primary_metric "solved" (a count) alongside f1.
+    const rows = app.findAll(e => e.tagName === 'TD' && e.className.includes('num'))
+      .map(e => e.textContent);
+    return rows.some(t => t.startsWith('f1 ')) && !rows.some(t => t.startsWith('solved '));
+  })(), 'sample size is not a result');
   check('surfaces unreadable files as an error banner', text.includes('could not be read'),
     'the malformed fixture run must not vanish silently');
   check('reports accelerator-hours', /accelerator-hours/.test(text));
@@ -131,7 +137,10 @@ console.log('\nproject list (#/)');
 
 console.log('\nproject story (#/p/fixture-project)');
 {
-  const { app } = await renderAt('#/p/fixture-project');
+  const { app, builtAt } = await renderAt('#/p/fixture-project');
+  check('the freshness stamp is filled in away from the landing page',
+    builtAt.textContent.startsWith('data as of'),
+    'the topbar promises freshness on every page');
   const t = app.textContent;
   check('leads with the story, not a metric table',
     app.findAll(e => e.tagName === 'TABLE').length === 0);
@@ -155,8 +164,9 @@ console.log('\nproject runs tab (#/p/fixture-project/runs)');
   let text = app.textContent;
   check('renders the variant description', text.includes('Increase encoder depth'));
   check('the idea is readable while collapsed', (() => {
-    const gist = app.find(e => e.className.includes('variant-gist'));
-    return !!gist && gist.textContent.includes('Increase encoder depth');
+    const gists = app.findAll(e => String(e.className || '').includes('variant-gist'));
+    return gists.length === 2
+      && gists.some(g => g.textContent.includes('Increase encoder depth'));
   })(), 'explanations must not be hidden behind a click');
   check('nothing is expanded by default', (() => {
     const panels = app.findAll(e => e.tagName === 'DETAILS' && e.className.includes('variant'));
@@ -251,6 +261,10 @@ console.log('\nrun detail');
   check('offers an edit link', app.findAll(e => (e.getAttribute('href') || '').includes('/edit/main/')).length > 0);
   check('offers a delete link', app.findAll(e => (e.getAttribute('href') || '').includes('/delete/main/')).length > 0);
   check('shows the config', text.includes('batch_size'));
+  check('the variant chip links back to the variant', (() => {
+    const chip = app.find(e => e.tagName === 'A' && e.textContent.startsWith('variant: '));
+    return !!chip && (chip.getAttribute('href') || '').includes('/v/');
+  })(), 'a run had no way back to its own table');
   check('shows the snapshotted training script', text.includes('LEARNING_RATE = 3e-4'),
     'snapshots are how no-remote projects stay reproducible');
   check('flags a truncated patch loudly', text.includes('TRUNCATED'));
@@ -265,7 +279,8 @@ console.log('\ncomparing runs');
   check('every run row has a selection checkbox', boxes.length >= 2, `found ${boxes.length}`);
   boxes.slice(0, 2).forEach(b => { b.checked = true; b.dispatch('change'); });
   const btn = app.find(e => e.tagName === 'BUTTON' && e.textContent.startsWith('Compare 2'));
-  check('the compare button activates at two selections', !!btn);
+  check('the compare button activates at two selections, across variants', !!btn,
+    'selection used to be scoped to one table, so cross-variant compare was impossible');
   if (btn) {
     btn.dispatch('click');
     for (let i = 0; i < 40; i++) await flush();

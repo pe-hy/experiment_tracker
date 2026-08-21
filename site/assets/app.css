@@ -543,6 +543,8 @@ details.panel > summary:hover { background: var(--surface-3); }
    A block box always takes its parent's full content width; nothing can squeeze
    it. The marker is taken out of flow entirely so it cannot be a layout
    participant. Do not reintroduce flex or grid on this summary. */
+details.panel.variant { scroll-margin-top: calc(var(--topbar-h) + var(--s4)); }
+
 details.panel.variant > summary {
   display: block;
   position: relative;
@@ -810,7 +812,8 @@ table.tbl td.count { color: var(--text-faint); }
 .lineage-row:last-child { border-bottom: none; }
 .lineage-row:hover { background: var(--surface-2); }
 
-.lineage-gutter { flex: none; align-self: stretch; }
+.lineage-gutter { flex: none; align-self: stretch; display: flex; flex-direction: column; }
+.lineage-gutter .rail-cont { flex: 1 1 auto; min-height: 0; height: auto; }
 .lineage-gutter .rail { display: block; overflow: visible; }
 
 .rail-line {
@@ -857,3 +860,19 @@ table.tbl td.count { color: var(--text-faint); }
 @media (max-width: 720px) {
   .lineage-gutter { display: none; }
 }
+
+/* --- 19. Cross-variant compare bar ------------------------------------- */
+
+/* Sticks under the topbar so a selection made in one variant stays actionable
+   while scrolling to a run in another. */
+.compare-bar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 30;
+  margin-bottom: var(--s4);
+  padding: var(--s2) var(--s3);
+  background: var(--accent-weak);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+}
+.btn[disabled] { opacity: .55; cursor: default; }

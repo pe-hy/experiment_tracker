@@ -150,8 +150,9 @@ function description(text, what) {
 /* ------------------------------------------------------------------- views */
 
 function setTitle(...parts) {
-  try { document.title = [...parts, 'Experiment Tracker'].filter(Boolean).join(' · '); }
-  catch (e) { /* no document.title in the test harness */ }
+  const title = [...parts, 'Experiment Tracker'].filter(Boolean).join(' · ');
+  try { document.title = title; } catch (e) { /* not present in the test harness */ }
+  announce(title);
 }
 
 async function viewProjects(app) {
@@ -221,10 +222,13 @@ async function viewProjects(app) {
 const RECENT_VISIBLE = 20;
 
 function recentRow(r) {
-  const key = r.primary_metric && (r.metrics || {})[r.primary_metric] !== undefined
-    ? r.primary_metric
-    : Object.keys(r.metrics || {})[0];
-  const value = key ? (r.metrics || {})[key] : undefined;
+  const m = r.metrics || {};
+  const candidates = [r.primary_metric, ...Object.keys(m)]
+    .filter(k => k && m[k] !== undefined);
+  // A count is not a result. The run table already refuses to rank them; the feed
+  // was still headlining `unseen_solved 177` as if it were a score.
+  const key = candidates.find(k => !isCountMetric(k)) || candidates[0];
+  const value = key ? m[key] : undefined;
   return h('tr', {},
     h('td', { class: 'faint nowrap', title: fmtDate(r.when) }, fmtAgo(r.when) || '—'),
     h('td', {}, h('a', { href: `#/p/${encodeURIComponent(r.project)}` },
@@ -301,6 +305,7 @@ async function viewProject(app, slug, tab, focusVariant) {
   clear(app);
 
   setTitle(project.name);
+  setBuiltAt(project.built_at);
   app.append(crumbs({ label: 'Projects', href: '#/' }, { label: project.name }));
   app.append(h('div', { class: 'page-head' },
     h('h1', {}, project.name),
@@ -328,11 +333,11 @@ async function viewProject(app, slug, tab, focusVariant) {
     { key: 'runs', label: `Runs (${project.run_count})`,
       href: `#/p/${encodeURIComponent(slug)}/runs` },
   ];
-  app.append(h('div', { class: 'tabs', role: 'tablist' },
+  app.append(h('nav', { class: 'tabs', 'aria-label': 'Project views' },
     tabs.map(t => h('a', {
       class: 'tab' + (t.key === (tab || '') ? ' is-active' : ''),
-      href: t.href, role: 'tab',
-      'aria-selected': t.key === (tab || '') ? 'true' : 'false',
+      href: t.href,
+      'aria-current': t.key === (tab || '') ? 'page' : null,
     }, t.label))));
 
   if ((tab || '') !== 'runs') {
@@ -343,13 +348,15 @@ async function viewProject(app, slug, tab, focusVariant) {
   // Everything starts collapsed. Twenty-three variants expanded is a wall of tables
   // you have to scroll past to find anything; collapsed, the same page is a readable
   // list of ideas. Which ones you opened is remembered per project.
-  const panels = project.variants.map(v => variantPanel(project, v));
+  const compare = compareController(project);
+  const panels = project.variants.map(v => variantPanel(project, v, compare));
 
   const setAll = (open) => panels.forEach(p => {
     p.open = open;
     if (open) { p.setAttribute('open', ''); p.ensureTable(); }
     else p.removeAttribute('open');
-    saveOpenState(project.slug, p.dataset.variant, open);
+    // Deliberately not persisted: a bulk expand is a momentary act, and storing it
+    // would rebuild every table on every later visit.
   });
 
   app.append(h('div', { class: 'toolbar' },
@@ -359,7 +366,9 @@ async function viewProject(app, slug, tab, focusVariant) {
     h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => setAll(true) }, 'Expand all'),
     h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => setAll(false) }, 'Collapse all')));
 
+  app.append(compare.bar);
   panels.forEach(p => app.append(p));
+  app.append(compare.out);
 
   if (focusVariant) {
     const target = panels.find(p => p.dataset.variant === focusVariant);
@@ -426,7 +435,7 @@ function verdictStrip(project) {
   return strip;
 }
 
-function variantPanel(project, variant) {
+function variantPanel(project, variant, compare) {
   const wasOpen = loadOpenState(project.slug).has(variant.variant);
   const panel = h('details', { class: 'panel variant', open: wasOpen ? '' : null });
   panel.dataset.variant = variant.variant;
@@ -483,7 +492,7 @@ function variantPanel(project, variant) {
   const buildTable = () => {
     if (built) return;
     built = true;
-    tableSlot.append(runTable(project, variant));
+    tableSlot.append(runTable(project, variant, compare));
   };
   panel.addEventListener('toggle', () => {
     if (panel.open) buildTable();
@@ -542,7 +551,7 @@ function splitMetricKey(key) {
  * has to be present in most runs to earn a column, which stops a single stray
  * evaluation run from adding four columns of dashes.
  */
-function metricColumns(project, runs, limit = 8, threshold = 0.8) {
+function metricColumns(project, runs, limit = 12, threshold = 0.3) {
   const n = runs.length;
   if (!n) return [];
   const counts = new Map();
@@ -587,7 +596,7 @@ function columnFormatter(key, values) {
   return fmt(v => v.toFixed(decimals));
 }
 
-function runTable(project, variant) {
+function runTable(project, variant, shared) {
   const runs = variant.runs;
   const cols = metricColumns(project, runs);
   // Highlight the best value per metric so a leaderboard read is instant. Direction is
@@ -610,7 +619,9 @@ function runTable(project, variant) {
     best[k] = lowerIsBetter ? Math.min(...vals) : Math.max(...vals);
   });
 
-  const selected = new Set();
+  // Shared across every variant table on the page, so a run in one variant can be
+  // compared with a run in another. Run ids are unique project-wide.
+  const selected = shared.selected;
   const hasDuration = runs.some(r => typeof r.duration_seconds === 'number');
   const hasStatus = new Set(runs.map(r => r.status || 'unknown')).size > 1;
   const headers = [
@@ -693,7 +704,13 @@ function runTable(project, variant) {
 
   const renderBody = () => {
     clear(tbody);
+    const missing = (r) => {
+      if (!sortKey.startsWith('m:')) return false;
+      return typeof (r.metrics || {})[sortKey.slice(2)] !== 'number';
+    };
     const sorted = [...runs].sort((a, b) => {
+      // Runs with no value for this column sink to the bottom in both directions.
+      if (missing(a) !== missing(b)) return missing(a) ? 1 : -1;
       const va = value(a, sortKey), vb = value(b, sortKey);
       const cmp = typeof va === 'number' && typeof vb === 'number'
         ? va - vb : String(va).localeCompare(String(vb));
@@ -706,9 +723,10 @@ function runTable(project, variant) {
       const box = h('input', { type: 'checkbox', 'aria-label': `select ${r.run_id}` });
       box.addEventListener('change', () => {
         if (box.checked) selected.add(r.run_id); else selected.delete(r.run_id);
-        updateCompareBar();
+        shared.onChange();
       });
       box.checked = selected.has(r.run_id);
+      shared.boxes.push(box);
       tr.append(h('td', {}, box));
       tr.append(h('td', {}, h('a', { href }, r.run_name || r.run_id),
         r.code && r.code.dirty ? h('span', { class: 'badge badge-warn', style: 'margin-left:6px', title: 'Uncommitted changes were present' }, 'dirty') : null));
@@ -730,46 +748,33 @@ function runTable(project, variant) {
     });
   };
 
-  const compareBar = h('div', { class: 'toolbar', style: 'margin:0 16px 12px; display:none' });
-  const compareBtn = h('button', { class: 'btn', type: 'button' }, 'Compare');
-  const compareCount = h('span', { class: 'xsmall faint' });
-  const compareOut = h('div');
-  compareBar.append(compareBtn, compareCount);
+  renderHead(); renderBody();
 
-  function updateCompareBar() {
-    compareBar.style.display = selected.size ? 'flex' : 'none';
-    compareCount.textContent = `${selected.size} selected`;
-    compareBtn.textContent = selected.size < 2 ? 'Select 2 or more' : `Compare ${selected.size} runs`;
-  }
-  compareBtn.addEventListener('click', async () => {
-    if (selected.size < 2) return;
-    clear(compareOut);
-    compareOut.append(h('p', { class: 'faint small' }, 'Loading runs…'));
-    try {
-      const full = await Promise.all([...selected].map(id =>
-        getJSON(`${DATA}/projects/${encodeURIComponent(project.slug)}/runs/${encodeURIComponent(id)}.json`)));
-      clear(compareOut);
-      compareOut.append(compareTable(full));
-    } catch (err) {
-      clear(compareOut);
-      compareOut.append(errorBanner(err));
-    }
-  });
-
-  renderHead(); renderBody(); updateCompareBar();
+  // Export every metric the variant recorded, not just the columns that fit on
+  // screen. An export is the thing people paste into a paper.
+  const allKeys = [];
+  runs.forEach(r => Object.entries(r.metrics || {}).forEach(([k, v]) => {
+    if (typeof v === 'number' && allKeys.indexOf(k) === -1) allKeys.push(k);
+  }));
+  allKeys.sort((a, b) => (cols.indexOf(b) !== -1) - (cols.indexOf(a) !== -1) || a.localeCompare(b));
 
   const rowsFor = () => {
-    const head = ['run', 'status', ...cols, 'duration_s', 'when'];
+    const head = ['run', 'status', ...allKeys, 'duration_s', 'when'];
     const body = runs.map(r => [
       r.run_name || r.run_id, r.status || '',
-      ...cols.map(k => { const v = (r.metrics || {})[k]; return typeof v === 'number' ? v : ''; }),
+      ...allKeys.map(k => { const v = (r.metrics || {})[k]; return typeof v === 'number' ? v : ''; }),
       typeof r.duration_seconds === 'number' ? Math.round(r.duration_seconds) : '',
       r.finished_at || r.started_at || '',
     ]);
     return [head, ...body];
   };
 
+  const hidden = allKeys.length - cols.length;
   const toolbar = h('div', { class: 'toolbar', style: 'margin:12px 16px 0' },
+    hidden > 0
+      ? h('span', { class: 'xsmall faint' },
+          `showing ${cols.length} of ${allKeys.length} metrics — open a run for the rest`)
+      : null,
     copyButton('Copy CSV', () => rowsFor()
       .map(row => row.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c)).join(','))
       .join('\n')),
@@ -785,8 +790,51 @@ function runTable(project, variant) {
     }));
 
   return h('div', {}, toolbar,
-    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)),
-    compareBar, compareOut);
+    h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' }, table)));
+}
+
+/** One selection shared by every variant table on the page, so runs from different
+ *  variants can be compared — which is the comparison this project most needs. */
+function compareController(project) {
+  const selected = new Set();
+  const boxes = [];   // so Clear can untick what it deselects
+  const bar = h('div', { class: 'toolbar compare-bar', style: 'display:none' });
+  const button = h('button', { class: 'btn', type: 'button' }, 'Compare');
+  const count = h('span', { class: 'xsmall faint' });
+  const out = h('div');
+  const clearBtn = h('button', { class: 'btn btn-ghost', type: 'button' }, 'Clear');
+  bar.append(button, count, clearBtn);
+
+  const onChange = () => {
+    bar.style.display = selected.size ? 'flex' : 'none';
+    count.textContent = `${selected.size} run${selected.size === 1 ? '' : 's'} selected across variants`;
+    button.textContent = selected.size < 2 ? 'Select 2 or more' : `Compare ${selected.size} runs`;
+    button.disabled = selected.size < 2;   // stop the button pretending it will act
+  };
+
+  button.addEventListener('click', async () => {
+    if (selected.size < 2) return;
+    clear(out);
+    out.append(h('p', { class: 'faint small' }, 'Loading runs…'));
+    try {
+      const full = await Promise.all([...selected].map(id =>
+        getJSON(`${DATA}/projects/${encodeURIComponent(project.slug)}/runs/${encodeURIComponent(id)}.json`)));
+      clear(out);
+      out.append(compareTable(full));
+    } catch (err) {
+      clear(out);
+      out.append(errorBanner(err));
+    }
+  });
+  clearBtn.addEventListener('click', () => {
+    selected.clear();
+    boxes.forEach(b => { b.checked = false; });
+    onChange();
+    clear(out);
+  });
+
+  onChange();
+  return { selected, onChange, bar, out, boxes };
 }
 
 /** Runs as columns, attributes as rows — the orientation that stays readable past
@@ -852,7 +900,9 @@ function compareTable(runs) {
     }
   };
 
-  const toggle = h('button', { class: 'btn is-active', type: 'button' }, 'Differences only');
+  const toggle = h('button', {
+    class: 'btn is-active', type: 'button', 'aria-pressed': 'true',
+  }, 'Differences only');
   toggle.addEventListener('click', () => {
     diffOnly = !diffOnly;
     toggle.classList.toggle('is-active', diffOnly);
@@ -909,6 +959,7 @@ async function viewRun(app, slug, runId) {
 
   const variant = (project.variants || []).find(v => v.variant === run.variant);
   setTitle(run.run_name || run.run_id, project.name);
+  setBuiltAt(project.built_at);
 
   app.append(crumbs(
     { label: 'Projects', href: '#/' },
@@ -920,7 +971,12 @@ async function viewRun(app, slug, runId) {
       h('h1', {}, run.run_name || run.run_id),
       statusBadge(run.status)),
     h('div', { class: 'row wrapf mt-4', style: 'gap:8px' },
-      run.variant && h('span', { class: 'chip' }, `variant: ${run.variant}`),
+      run.variant
+      ? h('a', {
+          class: 'chip',
+          href: `#/p/${encodeURIComponent(slug)}/v/${encodeURIComponent(run.variant)}`,
+        }, `variant: ${run.variant}`)
+      : null,
       run.author && h('span', { class: 'chip' }, run.author),
       ...(run.tags || []).map(t => h('span', { class: 'chip' }, t)))));
 
@@ -996,8 +1052,10 @@ async function viewRun(app, slug, runId) {
         'This project had no git remote, so the commit below exists only on the machine ' +
         'that ran it and cannot be fetched by anyone else.'));
     } else if (code.commit_pushed === false) {
-      app.append(h('div', { class: 'banner-error' },
-        'This commit was never pushed. The SHA is recorded, but nobody else can resolve it.'));
+      app.append(h('div', { class: 'panel' }, h('div', { class: 'panel-body small muted' },
+        h('span', { class: 'badge badge-warn' }, 'local only'), ' ',
+        'This commit was never pushed, so the SHA is recorded but nobody else can ' +
+        'resolve it.')));
     } else if (code.visibility === 'private' || code.visibility === 'private_or_missing') {
       app.append(h('div', { class: 'panel' }, h('div', { class: 'panel-body small muted' },
         'The source repository is private, so the links below will 404 for anyone without access. ',
@@ -1313,6 +1371,23 @@ function lineageRow(project, row, railCount, provenanceBy) {
   const gutter = h('div', { class: 'lineage-gutter', style: `width:${railCount * RAIL_W}px` });
   gutter.append(railSvg(row, railCount));
 
+  // The node glyph is drawn at a fixed height, but a row is as tall as its prose.
+  // Without this continuation every rail that must carry on to the next row would
+  // stop after 46px and leave a gap.
+  const below = [...row.through, ...row.forks, ...(row.terminal ? [] : [row.col])];
+  if (below.length) {
+    const w = Math.max(1, railCount) * RAIL_W;
+    const cont = svgEl('svg', {
+      class: 'rail rail-cont', width: w, viewBox: `0 0 ${w} 10`,
+      preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false',
+    });
+    [...new Set(below)].forEach(i => cont.appendChild(svgEl('path', {
+      d: `M${railX(i)},0 L${railX(i)},10`, class: 'rail-line',
+      'vector-effect': 'non-scaling-stroke',
+    })));
+    gutter.append(cont);
+  }
+
   const status = STATUS_LABEL[row.status] || null;
   const parents = row.parents || [];
 
@@ -1428,6 +1503,11 @@ function lineChart(series, label) {
 
 /* ------------------------------------------------------------------ router */
 
+function announce(message) {
+  const el = $('#sr-status');
+  if (el) el.textContent = message;
+}
+
 function setBuiltAt(builtAt) {
   const el = $('#built-at');
   if (!el || !builtAt) return;
@@ -1466,13 +1546,14 @@ export async function route() {
 
   app.setAttribute('aria-busy', 'true');
   try {
+    // Navigating straight to a variant scrolls to it; restoring a remembered
+    // position would fight that and win, because it runs a frame later.
+    const focusNav = parts[0] === 'p' && parts[2] === 'v' && !!parts[3];
     if (parts[0] === 'p' && parts[2] === 'r' && parts[3]) await viewRun(app, parts[1], parts[3]);
-    else if (parts[0] === 'p' && parts[2] === 'v' && parts[3]) {
-      // A link straight to one variant: show the tables and open just that one.
-      await viewProject(app, parts[1], 'runs', parts[3]);
-    } else if (parts[0] === 'p' && parts[1]) await viewProject(app, parts[1], parts[2]);
+    else if (focusNav) await viewProject(app, parts[1], 'runs', parts[3]);
+    else if (parts[0] === 'p' && parts[1]) await viewProject(app, parts[1], parts[2]);
     else await viewProjects(app);
-    restoreScroll(location.hash);
+    if (!focusNav) restoreScroll(location.hash);
   } catch (err) {
     clear(app);
     app.append(errorBanner(err));

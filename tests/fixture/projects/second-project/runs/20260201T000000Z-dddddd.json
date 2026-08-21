@@ -8,9 +8,10 @@
  ],
  "finished_at": "2026-02-01T00:20:00Z",
  "metrics": {
-  "f1": 0.71
+  "f1": 0.71,
+  "solved": 418.0
  },
- "primary_metric": "f1",
+ "primary_metric": "solved",
  "project": "second-project",
  "project_description": "Exists so the cross-project feed has something to cross.",
  "project_name": "Second Project",

@@ -22,6 +22,9 @@ from datetime import datetime
 
 SCHEMA_VERSION = 1
 
+# One stamp for the whole build, so every document agrees on when it was made.
+BUILT_AT = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
 # Fields promoted into the index so the browser can render lists, sort and filter
 # without fetching every run file. Everything else stays in the run file and is
 # loaded on demand when a run is opened.
@@ -204,8 +207,9 @@ def collect_variants(runs):
         entry["last_activity"] = _last_activity(entry["runs"])
         entry["first_activity"] = _first_activity(entry["runs"])
         variants.append(entry)
-    # Most recently active variant first.
-    variants.sort(key=lambda v: (v["last_activity"] or ""), reverse=True)
+    # Oldest first, matching the lineage view: this is the order the ideas happened
+    # in, and having the two tabs disagree about ordering is disorienting.
+    variants.sort(key=lambda v: (v["first_activity"] or "~", v["variant"]))
     return variants
 
 
@@ -529,6 +533,7 @@ def build_project(project_dir, slug):
 
     project = {
         "slug": slug,
+        "built_at": BUILT_AT,
         "name": name or slug,
         "description": description,
         "repo": meta.get("repo") or _first(runs, lambda r: (r.get("code") or {}).get("remote_url")),
@@ -700,7 +705,7 @@ def main():
     total_gpu_hours = sum(p["gpu_hours"] for p in summaries if p.get("gpu_hours"))
     index = {
         "schema_version": SCHEMA_VERSION,
-        "built_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "built_at": BUILT_AT,
         "project_count": len(summaries),
         "run_count": total_runs,
         "gpu_hours": round(total_gpu_hours, 2) if total_gpu_hours else None,
