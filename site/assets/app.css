@@ -435,7 +435,12 @@ table.tbl th, table.tbl td {
   white-space: nowrap;
 }
 table.tbl thead th {
-  position: sticky; top: var(--topbar-h); z-index: 2;
+  /* Deliberately NOT position:sticky. `.table-scroll` sets overflow-x:auto, and CSS
+     computes the other axis to auto as well, so that div — not the page — is the
+     scrollport. A sticky header there resolves against the div, which has no height
+     constraint and so never scrolls vertically; any non-zero `top` then simply
+     offsets the header down into its own rows. Restoring sticky requires giving
+     `.table-scroll` a max-height first, and `top: 0` rather than the topbar height. */
   white-space: normal;
   max-width: 15ch;
   vertical-align: bottom;

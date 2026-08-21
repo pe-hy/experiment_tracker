@@ -57,6 +57,28 @@ async function renderAt(hash) {
   return dom;
 }
 
+console.log('\nstylesheet invariants');
+{
+  // Strip comments first: prose about the rule must not be mistaken for the rule.
+  const css = readFileSync(new URL('../site/assets/app.css', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const thead = (css.match(/table\.tbl thead th \{[^}]*\}/) || [''])[0];
+  const scroll = (css.match(/\.table-scroll \{[^}]*\}/) || [''])[0];
+  // A sticky header inside an overflow-x container resolves against that container,
+  // not the page. Without a height constraint it never scrolls, so a non-zero `top`
+  // pushes the header down over its own rows — which is exactly what shipped once.
+  const sticky = /position:\s*sticky/.test(thead);
+  // `\s*` backtracks to zero width, so `top:\s*(?!0)` matches "top: 0". Capture and
+  // compare instead of asserting with a lookahead.
+  const topValue = (thead.match(/top:\s*([^;]+);/) || [])[1];
+  const offset = !!topValue && topValue.trim() !== '0';
+  const bounded = /max-height/.test(scroll);
+  check('table headers are not sticky-with-offset inside an unbounded scroll box',
+    !(sticky && offset && !bounded),
+    'give .table-scroll a max-height and use top:0, or drop position:sticky');
+  check('long metric headers may wrap', /white-space:\s*normal/.test(thead));
+}
+
 console.log('\nrelative time (a system of record must not misdate its own runs)');
 {
   const now = Date.now();
