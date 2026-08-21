@@ -57,6 +57,17 @@ async function renderAt(hash) {
   return dom;
 }
 
+console.log('\nrelative time (a system of record must not misdate its own runs)');
+{
+  const now = Date.now();
+  const ago = (secs) => app_module.fmtAgo(new Date(now - secs * 1000).toISOString());
+  const cases = [
+    [45, '45s ago'], [100, '1m ago'], [60 * 59, '59m ago'], [3700, '1h ago'],
+    [90000, '1d ago'], [86400 * 29, '4w ago'], [86400 * 400, '1y ago'],
+  ];
+  cases.forEach(([secs, want]) => check(`${secs}s reads as "${want}"`, ago(secs) === want, `got "${ago(secs)}"`));
+}
+
 console.log('\nproject list (#/)');
 {
   const { app, builtAt } = await renderAt('');

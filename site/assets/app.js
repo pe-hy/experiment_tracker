@@ -76,12 +76,14 @@ function fmtDate(s) {
   return d.toISOString().slice(0, 16).replace('T', ' ') + 'Z';
 }
 
-function fmtAgo(s) {
+export function fmtAgo(s) {
   const d = parseDate(s);
   if (!d) return '';
   const secs = (Date.now() - d.getTime()) / 1000;
   if (secs < 0) return 'just now';
-  const steps = [[60, 's'], [60, 'm'], [24, 'h'], [7, 'd'], [4.35, 'w'], [12, 'mo']];
+  // Each pair is "divide by this, and the result is in these units". The unit must
+  // name what the division produces, not what it consumed.
+  const steps = [[60, 'm'], [60, 'h'], [24, 'd'], [7, 'w'], [4.35, 'mo'], [12, 'y']];
   let v = secs, unit = 's';
   for (const [div, next] of steps) {
     if (v < div) break;
@@ -147,9 +149,15 @@ function description(text, what) {
 
 /* ------------------------------------------------------------------- views */
 
+function setTitle(...parts) {
+  try { document.title = [...parts, 'Experiment Tracker'].filter(Boolean).join(' · '); }
+  catch (e) { /* no document.title in the test harness */ }
+}
+
 async function viewProjects(app) {
   const index = await getJSON(`${DATA}/index.json`);
   setBuiltAt(index.built_at);
+  setTitle();
   clear(app);
 
   const bits = [`${index.project_count} project${index.project_count === 1 ? '' : 's'}`,
@@ -269,6 +277,7 @@ async function viewProject(app, slug) {
   const project = await getJSON(`${DATA}/projects/${encodeURIComponent(slug)}/project.json`);
   clear(app);
 
+  setTitle(project.name);
   app.append(crumbs({ label: 'Projects', href: '#/' }, { label: project.name }));
   app.append(h('div', { class: 'page-head' },
     h('h1', {}, project.name),
@@ -338,6 +347,7 @@ function variantPanel(project, variant) {
   const wasOpen = loadOpenState(project.slug).has(variant.variant);
   const panel = h('details', { class: 'panel variant', open: wasOpen ? '' : null });
   panel.dataset.variant = variant.variant;
+  panel.setAttribute('id', `v-${variant.variant}`);
 
   const status = VARIANT_STATUS[variant.status];
   const runsLabel = `${variant.run_count} run${variant.run_count === 1 ? '' : 's'}`;
@@ -348,6 +358,10 @@ function variantPanel(project, variant) {
   panel.append(h('summary', {},
     h('div', { class: 'variant-head' },
       h('span', { class: 'variant-name' }, variant.variant_name || variant.variant),
+      // Real data has one variant whose variant_name is another variant's slug, so
+      // two different ideas rendered under one heading. Show the slug when it differs.
+      (variant.variant_name && variant.variant_name !== variant.variant)
+        ? h('span', { class: 'chip' }, variant.variant) : null,
       status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
       variant.conclusion ? h('span', { class: 'badge badge-ok' }, 'concluded') : null,
       h('span', { class: 'flex-spacer' }),
@@ -765,6 +779,7 @@ async function viewRun(app, slug, runId) {
   clear(app);
 
   const variant = (project.variants || []).find(v => v.variant === run.variant);
+  setTitle(run.run_name || run.run_id, project.name);
 
   app.append(crumbs(
     { label: 'Projects', href: '#/' },
