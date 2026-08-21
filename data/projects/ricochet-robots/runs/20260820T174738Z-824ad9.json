@@ -144,6 +144,6 @@
  "variant": "b2-selfplay-loop-24x24",
  "variant_conclusion": "M4 PASS with a caveat: frontier A* 133->158 (p=8e-4 vs iteration 0) and beats the frozen supervised B2 rows p<1e-4, but the climb saturates after iteration 3 and realized moves on shared solves never improved - the loop distilled search into the nets rather than lowering moves.",
  "variant_description": "Certified self-play loop in the extended B2 vocabulary at 24x24: MCTS with park repairs generates by-reference plans no supervised corpus taught, physics certification labels them (cost_to_go in abstract units, strict moves alongside), and the size-free pair is warm-retrained each iteration. No exact labels anywhere in the loop.",
- "variant_name": "b2-selfplay-loop-24x24",
+ "variant_name": "Self-play loop, extended language (24x24)",
  "variant_status": "superseded"
 }

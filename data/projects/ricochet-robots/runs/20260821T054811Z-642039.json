@@ -117,7 +117,7 @@
  "variant": "varlab-cold-start",
  "variant_conclusion": "From random init, one iteration (3.8k certified records) reaches 200/232 graded and 132/200 unseen - statistically indistinguishable from the fully-supervised per-size pair (134/200) on the same fresh boards. The supervised prior is worth ~40 unseen solves to warm arms.",
  "variant_description": "Variants lab v08 (owner-requested bootstrap axis): random initialization, no supervised warm start anywhere - how far does one iteration of certified self-play get with zero human, exact or supervised signal?",
- "variant_name": "varlab-cold-start",
+ "variant_name": "From scratch: no supervised head start",
  "variant_role": "baseline",
  "variant_status": "done"
 }

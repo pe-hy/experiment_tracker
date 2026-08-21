@@ -78,6 +78,6 @@
  ],
  "variant": "persize-backward-b2-language",
  "variant_description": "Backward planners trained to rank the extended B2 subgoal vocabulary (by-reference helpers, park repairs) from exact B2 corpora - does a richer plan language beat the base one under pure supervision?",
- "variant_name": "persize-backward-b2-language",
+ "variant_name": "Extended plan language (B2), supervised",
  "variant_status": "superseded"
 }

@@ -97,6 +97,6 @@
  "variant": "sizefree-labeler-pe-none",
  "variant_conclusion": "Held: argmin agreement 0.85-0.92 at 8-32 and still 0.81-0.85 at 40-64 (zero-shot); adopted as the bootstrap value net and encoder template for every size-free arm.",
  "variant_description": "Size-free LoopedValueNet labeler (pe=none, HL-Gauss 96 bins) trained on exact corpora at 8-16 boards only; it has no size-dependent parameters, so one checkpoint labels any board size. The bet: fidelity holds far beyond the training sizes.",
- "variant_name": "sizefree-labeler-pe-none",
+ "variant_name": "Size-free value labeler",
  "variant_status": "adopted"
 }

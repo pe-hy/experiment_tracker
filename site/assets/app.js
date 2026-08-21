@@ -1315,7 +1315,8 @@ function lineageRow(project, row, provenanceBy) {
     h('a', {
       class: 'lineage-name',
       href: `#/p/${encodeURIComponent(project.slug)}/v/${encodeURIComponent(row.variant)}`,
-    }, row.variant),
+      title: row.variant,
+    }, row.variant_name || row.variant),
     status ? h('span', { class: `badge ${status[0]}` }, status[1]) : null,
     h('span', { class: 'badge badge-info' },
       `${row.run_count} run${row.run_count === 1 ? '' : 's'}`),
@@ -1337,8 +1338,8 @@ function lineageRow(project, row, provenanceBy) {
         truncate(p.note, 70)));
       return;
     }
-    meta.append(h('span', { class: 'chip', title: p.note ? `why: ${p.note}` : null },
-      `${RELATION_LABEL[p.relation] || p.relation} ${p.variant}`));
+    meta.append(h('span', { class: 'chip', title: [p.variant, p.note ? `why: ${p.note}` : null].filter(Boolean).join(' — ') },
+      `${RELATION_LABEL[p.relation] || p.relation} ${p.variant_name || p.variant}`));
   });
   (provenanceBy[row.variant] || []).forEach(parent => meta.append(
     // Checkpoint provenance is a different graph from idea lineage and must never

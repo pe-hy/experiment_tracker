@@ -123,6 +123,6 @@
  ],
  "variant": "varlab-gumbel-root",
  "variant_description": "Variants lab v06: Gumbel-top-m root sampling with sequential halving at the root during generation (Gumbel-AlphaZero style) instead of PUCT root expansion.",
- "variant_name": "varlab-gumbel-root",
+ "variant_name": "Gumbel lottery exploration at the root",
  "variant_status": "inconclusive"
 }

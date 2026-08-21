@@ -87,6 +87,6 @@
  "variant": "byref-zero-shot-ab",
  "variant_conclusion": "Supply is enormous, effect is noise-level (+3 frontier of 134, p=0.61): the training signal, not candidate supply, is the bottleneck - the language ceiling (99.6%) remains a language property, not a delivered result.",
  "variant_description": "Zero-shot A/B of the by-reference candidate step at g16r6: the banked cap-20000 B2 nets benched with the by-reference proposal flag off vs on - measures the vocabulary's delivered value when the nets never saw a by-reference record (a lower bound on the step's worth).",
- "variant_name": "byref-zero-shot-ab",
+ "variant_name": "By-reference step: zero-shot on/off test",
  "variant_status": "inconclusive"
 }

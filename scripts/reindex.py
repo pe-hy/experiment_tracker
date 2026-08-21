@@ -339,8 +339,19 @@ def build_lineage(variants, curated):
     def emit(node, indent, guides, last):
         variant = by_slug[node]
         kids = tree_children.get(node, [])
+        def _named(edges):
+            out = []
+            for e in edges:
+                e = dict(e)
+                other = by_slug.get(e.get("variant"))
+                if other:
+                    e["variant_name"] = other.get("variant_name") or e["variant"]
+                out.append(e)
+            return out
+
         rows.append({
             "variant": node,
+            "variant_name": variant.get("variant_name") or node,
             "indent": indent,
             "guides": list(guides),      # one flag per ancestor level: does that
                                          # ancestor have later siblings (draw a rail)?
@@ -348,8 +359,8 @@ def build_lineage(variants, curated):
             "depth": depth(node),
             "primary_parent": primary.get(node),
             "terminal": not kids and not children.get(node),
-            "parents": [dict(e) for e in parents.get(node, ())],
-            "children": [dict(c) for c in children.get(node, ())],
+            "parents": _named(parents.get(node, ())),
+            "children": _named(children.get(node, ())),
             "status": variant.get("status"),
             "role": variant.get("role"),
             "run_count": variant.get("run_count", 0),
@@ -369,7 +380,8 @@ def build_lineage(variants, curated):
     for node in sorted(slugs - placed, key=lambda v: (order_seen.get(v, 0), v)):
         variant = by_slug[node]
         rows.append({
-            "variant": node, "indent": 0, "guides": [], "last": True,
+            "variant": node, "variant_name": variant.get("variant_name") or node,
+            "indent": 0, "guides": [], "last": True,
             "depth": depth(node), "primary_parent": None,
             "terminal": True, "parents": [dict(e) for e in parents.get(node, ())],
             "children": [dict(c) for c in children.get(node, ())],

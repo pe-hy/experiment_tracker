@@ -122,7 +122,7 @@
  ],
  "variant": "varlab-control",
  "variant_description": "Matched-budget control arm of the self-play variants lab: the current loop recipe run under the lab's frozen protocol (same seed boards, budget and warm start), so every structural variant is paired against one common reference.",
- "variant_name": "varlab-control",
+ "variant_name": "Variants lab: control recipe",
  "variant_role": "control",
  "variant_status": "active"
 }

@@ -105,6 +105,6 @@
  "variant": "base-selfplay-loop-24x24",
  "variant_conclusion": "Flat, as the ceiling study predicted: nothing left to learn in the base vocabulary; the loop moved to the B2 vocabulary.",
  "variant_description": "AlphaZero-style certified self-play loop in the BASE subgoal vocabulary at 24x24: MCTS generation on fresh lean boards, physics-certified labels, warm retrain each iteration. Negative control: the supervised nets already saturate this language's ceiling.",
- "variant_name": "base-selfplay-loop-24x24",
+ "variant_name": "Self-play loop, base language (24x24)",
  "variant_status": "refuted"
 }

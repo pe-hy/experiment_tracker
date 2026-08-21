@@ -123,6 +123,6 @@
  "variant": "varlab-combo-stack",
  "variant_conclusion": "Interference on solves (v04's frontier gain vanishes under Gumbel-shaped trees - its declared expected-failure realized) but composition on MOVES (frontier both-solved 37/15 p=0.003, best frontier moves 19.47). Pointed to v14 = v04+v09 without v06.",
  "variant_description": "Variants lab v13: stack the three wave-1 positives (emit-all + Gumbel root + strict-moves value) to test whether the deltas are additive.",
- "variant_name": "varlab-combo-stack",
+ "variant_name": "Stack all three wave-1 winners",
  "variant_status": "superseded"
 }

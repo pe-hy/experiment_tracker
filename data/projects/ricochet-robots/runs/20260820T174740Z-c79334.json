@@ -175,6 +175,6 @@
  "variant": "mixedsize-b2-curriculum",
  "variant_conclusion": "One iteration broke the plateau on every frontier (g24r4 170/218 p=0.002, g32r4 235/275 p=2e-5, g24r8 269/289 vs 161 recorded, p~0); iteration 2 traded a little frontier back for graded optimality.",
  "variant_description": "Run the B2 self-play loop on mixed target distributions (24x24 + 32x32 + 8 robots) with ONE size-free pair, per-config replay buffers and size-aware batches, to remove the 24-only loop's specialization plateau.",
- "variant_name": "mixedsize-b2-curriculum",
+ "variant_name": "Self-play across mixed board sizes",
  "variant_status": "active"
 }
