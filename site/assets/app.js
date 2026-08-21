@@ -865,7 +865,8 @@ function compareTable(runs) {
     h('div', { class: 'panel-head' }, h('h3', {}, `Comparing ${runs.length} runs`), toggle),
     h('div', { class: 'panel-body flush' }, h('div', { class: 'table-scroll' },
       h('table', { class: 'tbl' },
-        h('thead', {}, h('tr', {}, h('th', {}, ''), ...cols.map(c => h('th', {}, c)))),
+        h('thead', {}, h('tr', {}, h('th', {}, ''),
+          ...cols.map(c => h('th', { title: c }, ...breakableName(c))))),
         tbody))));
 }
 

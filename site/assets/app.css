@@ -275,7 +275,7 @@ main { padding: var(--s6) 0 var(--s8); }
 .grid {
   display: grid;
   gap: var(--s4);
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
 }
 
 .card {
@@ -414,6 +414,8 @@ a.card:hover {
 
 /* --- 7. Tables -------------------------------------------------------- */
 
+.panel-body.flush > .table-scroll { border: none; border-radius: 0; }
+
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -442,7 +444,7 @@ table.tbl thead th {
      offsets the header down into its own rows. Restoring sticky requires giving
      `.table-scroll` a max-height first, and `top: 0` rather than the topbar height. */
   white-space: normal;
-  max-width: 16ch;
+  max-width: 18ch;   /* content ~91px >= longest fragment EXPANSIONS ~83px */
   /* Belt and braces with the <wbr> break points the header builder inserts: a metric
      name with no underscores at all would otherwise still overflow the max-width and
      paint over the neighbouring header, because overflow is visible by default. */
@@ -456,27 +458,30 @@ table.tbl thead th {
   letter-spacing: 0.04em;
   user-select: none;
 }
-table.tbl thead th.sortable { cursor: pointer; }
+table.tbl thead th.sortable { cursor: pointer; position: relative; padding-right: 18px; }
 table.tbl thead th.sortable:hover { color: var(--text); background: var(--surface-3); }
-table.tbl thead th .arrow { opacity: 0; margin-left: 4px; font-size: 9px; white-space: nowrap; }
+table.tbl thead th .arrow {
+  opacity: 0;
+  position: absolute; right: 5px; bottom: 8px;   /* out of the inline flow */
+  font-size: 9px;
+}
 table.tbl thead th[aria-sort] { color: var(--text); }
 table.tbl thead th[aria-sort] .arrow { opacity: 1; }
 table.tbl tbody tr:hover { background: var(--surface-2); }
 table.tbl tbody tr:last-child td { border-bottom: none; }
 table.tbl td.num { text-align: right; font-family: var(--font-mono); }
 table.tbl td.best { color: var(--ok); font-weight: 620; }
-table.tbl .cell-wrap { white-space: normal; min-width: 240px; }
 
 /* --- 8. Key/value detail lists ---------------------------------------- */
 
 .kv {
   display: grid;
-  grid-template-columns: minmax(140px, max-content) 1fr;
+  grid-template-columns: minmax(140px, 38ch) 1fr;
   gap: 2px var(--s4);
   font-size: var(--fs-sm);
 }
 .kv dt { color: var(--text-muted); padding: 3px 0; overflow-wrap: break-word; }
-.kv dd { margin: 0; padding: 3px 0; font-family: var(--font-mono); word-break: break-word; }
+.kv dd { margin: 0; padding: 3px 0; font-family: var(--font-mono); overflow-wrap: break-word; }
 
 /* --- 9. Panels / sections --------------------------------------------- */
 
@@ -725,6 +730,9 @@ pre.code {
 
 @media (max-width: 720px) {
   .wrap { padding: 0 var(--s4); }
+  /* The freshness stamp is nowrap and cannot shrink; dropping it keeps the topbar
+     inside the viewport instead of forcing page-level horizontal scroll. */
+  #built-at { display: none; }
   h1 { font-size: var(--fs-xl); }
   .kv { grid-template-columns: 1fr; gap: 0; }
   .kv dt { padding-top: var(--s2); }
