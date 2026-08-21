@@ -124,5 +124,6 @@
  "variant": "varlab-frontier-curriculum",
  "variant_conclusion": "Flat at one iteration (records -29%, no exam moves); the compounding test (3-iteration chain) is running as wave 3.",
  "variant_description": "Variants lab v12: probe-and-reject instance mining - generation budget redirected to instances the current net fails, testing whether a self-generated curriculum compounds across iterations.",
- "variant_name": "varlab-frontier-curriculum"
+ "variant_name": "varlab-frontier-curriculum",
+ "variant_status": "active"
 }

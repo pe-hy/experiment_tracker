@@ -78,5 +78,6 @@
  "variant": "persize-backward-b2-language",
  "variant_conclusion": "Supply exists but supervision never taught the ranking: the B2 arms trail the base arms on graded exams; the extended language only pays off once the self-play loop trains on certified B2 plans.",
  "variant_description": "Backward planners trained to rank the extended B2 subgoal vocabulary (by-reference helpers, park repairs) from exact B2 corpora - does a richer plan language beat the base one under pure supervision?",
- "variant_name": "persize-backward-b2-language"
+ "variant_name": "persize-backward-b2-language",
+ "variant_status": "superseded"
 }

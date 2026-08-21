@@ -125,5 +125,6 @@
  "variant": "varlab-stack-v04v09",
  "variant_conclusion": "WIN on the unseen exam at both seeds (179/200 p=0.039 and 177/200 p=0.065 with unseen moves 32/15 p=0.019; Fisher p~0.016); adopted as the lab recipe. v14 buys unseen breadth; v04-only keeps the bigger frontier jump - carry both.",
  "variant_description": "Variants lab v14: compose the two replicated winners (emit-all generation + strict-moves value targets), dropping the non-replicating Gumbel root - the natural composition v13's interference pointed to.",
- "variant_name": "varlab-stack-v04v09"
+ "variant_name": "varlab-stack-v04v09",
+ "variant_status": "adopted"
 }

@@ -82,5 +82,6 @@
  ],
  "variant": "nn-labeled-twin-retrain",
  "variant_description": "Retrain per-size backward planners on corpora labeled by the size-free NN labeler instead of the exact solver ('twin'; 'deploy' = labeler-generated boards too), to test whether NN labels can replace exact supervision at scale.",
- "variant_name": "nn-labeled-twin-retrain"
+ "variant_name": "nn-labeled-twin-retrain",
+ "variant_status": "done"
 }

@@ -123,5 +123,6 @@
  ],
  "variant": "varlab-strict-moves-value",
  "variant_description": "Variants lab v09: train the value net on realized STRICT move counts - the benchmark metric itself - instead of abstract plan cost; no arm in the project had ever trained on the metric.",
- "variant_name": "varlab-strict-moves-value"
+ "variant_name": "varlab-strict-moves-value",
+ "variant_status": "adopted"
 }

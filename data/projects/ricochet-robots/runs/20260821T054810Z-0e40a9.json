@@ -124,5 +124,6 @@
  "variant": "varlab-visit-policy-targets",
  "variant_conclusion": "Decisive loss: every exam collapses at p<=1e-7 (graded 202 vs 228, frontier 118 vs 160, unseen 142 vs 172); the control's cost-based target is load-bearing, not incidental. Kept as a documented negative result.",
  "variant_description": "Variants lab v01: replace the certified-cost softmax policy target with the AlphaZero-textbook MCTS visit-count distribution, testing whether the standard target transfers to certified single-agent planning at small search budgets.",
- "variant_name": "varlab-visit-policy-targets"
+ "variant_name": "varlab-visit-policy-targets",
+ "variant_status": "refuted"
 }

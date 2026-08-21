@@ -104,5 +104,6 @@
  "variant": "m1-sizefree-rebuild",
  "variant_conclusion": "PASS: the mixed pair beats the per-size supervised pair at 24x24 (215/232, regret 2.43 vs 205/232, 4.20), ties at 16x16, transfers zero-shot both directions; replicated at seed 37.",
  "variant_description": "Rebuild policy+value size-free (pe=none, no positional table, labeler-encoder init, lr 1e-4 + grad clip) on exact corpora at 16+24 so ONE pair plays any board size - the M1 gate of the self-play program.",
- "variant_name": "m1-sizefree-rebuild"
+ "variant_name": "m1-sizefree-rebuild",
+ "variant_status": "adopted"
 }

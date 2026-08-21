@@ -1,0 +1,225 @@
+{
+ "variants": {
+  "b2-selfplay-loop-24x24": {
+   "derived_from": [
+    {
+     "note": "the certified loop machinery",
+     "relation": "composes",
+     "variant": "base-selfplay-loop-24x24"
+    },
+    {
+     "note": "the extended language with headroom supervision could not rank",
+     "relation": "composes",
+     "variant": "persize-backward-b2-language"
+    }
+   ]
+  },
+  "base-selfplay-loop-24x24": {
+   "derived_from": [
+    {
+     "note": "AlphaZero-style certified loop seeded from the M1 pair; base vocabulary",
+     "relation": "derived-from",
+     "variant": "m1-sizefree-rebuild"
+    }
+   ]
+  },
+  "byref-zero-shot-ab": {
+   "derived_from": [
+    {
+     "note": "measure the by-reference step's delivered value zero-shot",
+     "relation": "derived-from",
+     "variant": "persize-backward-b2-language"
+    }
+   ]
+  },
+  "forward-move-selfplay-24x24": {
+   "derived_from": [
+    {
+     "note": "the self-play loop idea",
+     "relation": "composes",
+     "variant": "base-selfplay-loop-24x24"
+    },
+    {
+     "note": "applied to the forward MoveNet, attacking optimality",
+     "relation": "composes",
+     "variant": "persize-forward-supervised"
+    }
+   ]
+  },
+  "forward-rescue-tune": {
+   "derived_from": [
+    {
+     "note": "review objection: was the forward opponent under-tuned? 9-arm grid, val-only selection",
+     "relation": "derived-from",
+     "variant": "persize-forward-supervised"
+    }
+   ]
+  },
+  "headline-seed-replicates": {
+   "derived_from": [
+    {
+     "note": "recipe verbatim, only --torch-seed varies",
+     "relation": "replicates",
+     "variant": "persize-backward-supervised"
+    }
+   ]
+  },
+  "label-corruption-dose": {
+   "derived_from": [
+    {
+     "note": "isolate the twin collapse's suspected cause: argmin-fidelity corruption at matched dose",
+     "relation": "derived-from",
+     "variant": "nn-labeled-twin-retrain"
+    }
+   ]
+  },
+  "m1-sizefree-rebuild": {
+   "derived_from": [
+    {
+     "note": "the size-free pe=none recipe and encoder",
+     "relation": "composes",
+     "variant": "sizefree-labeler-pe-none"
+    },
+    {
+     "note": "the planner task and its exact corpora",
+     "relation": "composes",
+     "variant": "persize-backward-supervised"
+    }
+   ]
+  },
+  "mixedsize-b2-curriculum": {
+   "derived_from": [
+    {
+     "note": "fix the 24-only specialization plateau with mixed target distributions",
+     "relation": "derived-from",
+     "variant": "b2-selfplay-loop-24x24"
+    }
+   ]
+  },
+  "nn-labeled-twin-retrain": {
+   "derived_from": [
+    {
+     "note": "replace exact solver labels with the labeler's",
+     "relation": "derived-from",
+     "variant": "sizefree-labeler-pe-none"
+    }
+   ]
+  },
+  "persize-backward-b2-language": {
+   "derived_from": [
+    {
+     "note": "extend the plan language (by-reference, parks), keep the training recipe",
+     "relation": "derived-from",
+     "variant": "persize-backward-supervised"
+    }
+   ]
+  },
+  "persize-backward-supervised": {
+   "derived_from": []
+  },
+  "persize-forward-supervised": {
+   "derived_from": []
+  },
+  "sizefree-labeler-pe-none": {
+   "derived_from": [
+    {
+     "note": "LoopedValueNet value stack re-cast size-free (pe=none) as a corpus labeler",
+     "relation": "derived-from",
+     "variant": "persize-backward-supervised"
+    }
+   ]
+  },
+  "varlab-cold-start": {
+   "derived_from": [
+    {
+     "note": "single delta: random init - tests the supervised bootstrap edge itself",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  },
+  "varlab-combo-stack": {
+   "derived_from": [
+    {
+     "relation": "composes",
+     "variant": "varlab-deep-emit"
+    },
+    {
+     "relation": "composes",
+     "variant": "varlab-gumbel-root"
+    },
+    {
+     "relation": "composes",
+     "variant": "varlab-strict-moves-value"
+    }
+   ]
+  },
+  "varlab-control": {
+   "derived_from": [
+    {
+     "note": "lab protocol frozen on mix-iteration-2 nets; common reference for all arms",
+     "relation": "derived-from",
+     "variant": "mixedsize-b2-curriculum"
+    }
+   ]
+  },
+  "varlab-deep-emit": {
+   "derived_from": [
+    {
+     "note": "single delta: emit records from all expanded decisions",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  },
+  "varlab-frontier-curriculum": {
+   "derived_from": [
+    {
+     "note": "single delta: probe-and-reject hard-instance mining",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  },
+  "varlab-gumbel-root": {
+   "derived_from": [
+    {
+     "note": "single delta: Gumbel-top-m root + sequential halving",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  },
+  "varlab-stack-v04v09": {
+   "derived_from": [
+    {
+     "relation": "composes",
+     "variant": "varlab-deep-emit"
+    },
+    {
+     "note": "v13's interference dropped the non-replicating Gumbel root",
+     "relation": "composes",
+     "variant": "varlab-strict-moves-value"
+    }
+   ]
+  },
+  "varlab-strict-moves-value": {
+   "derived_from": [
+    {
+     "note": "single delta: value trained on realized strict moves (the metric)",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  },
+  "varlab-visit-policy-targets": {
+   "derived_from": [
+    {
+     "note": "single delta: AlphaZero visit-count policy targets",
+     "relation": "derived-from",
+     "variant": "varlab-control"
+    }
+   ]
+  }
+ }
+}

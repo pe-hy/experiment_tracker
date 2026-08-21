@@ -124,5 +124,6 @@
  "variant": "varlab-deep-emit",
  "variant_conclusion": "Replicated WIN on frontier solves (171 vs 160 p=0.013 at seed 7; 176 vs 155 p=0.0002 at seed 8; Fisher p=3.4e-5); adopted as the lab's default generation recipe.",
  "variant_description": "Variants lab v04: emit training records from ALL expanded decisions (sibling completion on every expanded node) instead of only the principal path - 2.2x records per iteration at 3.8x generation wall-time.",
- "variant_name": "varlab-deep-emit"
+ "variant_name": "varlab-deep-emit",
+ "variant_status": "adopted"
 }

@@ -124,5 +124,6 @@
  ],
  "variant": "varlab-stack-v04v09",
  "variant_description": "Variants lab v14: compose the two replicated winners (emit-all generation + strict-moves value targets), dropping the non-replicating Gumbel root - the natural composition v13's interference pointed to.",
- "variant_name": "varlab-stack-v04v09"
+ "variant_name": "varlab-stack-v04v09",
+ "variant_status": "adopted"
 }

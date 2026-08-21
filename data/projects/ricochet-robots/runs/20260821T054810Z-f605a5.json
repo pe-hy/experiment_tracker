@@ -124,5 +124,6 @@
  "variant": "varlab-gumbel-root",
  "variant_conclusion": "Did not replicate: the seed-7 graded-moves win (19/6, p=0.015) reversed at seed 8 (14/16, p=0.86); frontier suggestive only (Fisher p=0.04). Within seed noise for one-iteration arms; dropped from the composed recipe.",
  "variant_description": "Variants lab v06: Gumbel-top-m root sampling with sequential halving at the root during generation (Gumbel-AlphaZero style) instead of PUCT root expansion.",
- "variant_name": "varlab-gumbel-root"
+ "variant_name": "varlab-gumbel-root",
+ "variant_status": "inconclusive"
 }

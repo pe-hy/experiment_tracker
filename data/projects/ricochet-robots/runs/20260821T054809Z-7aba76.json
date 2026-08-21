@@ -172,5 +172,6 @@
  ],
  "variant": "mixedsize-b2-curriculum",
  "variant_description": "Run the B2 self-play loop on mixed target distributions (24x24 + 32x32 + 8 robots) with ONE size-free pair, per-config replay buffers and size-aware batches, to remove the 24-only loop's specialization plateau.",
- "variant_name": "mixedsize-b2-curriculum"
+ "variant_name": "mixedsize-b2-curriculum",
+ "variant_status": "active"
 }

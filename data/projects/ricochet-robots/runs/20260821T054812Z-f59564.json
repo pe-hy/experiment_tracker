@@ -77,5 +77,7 @@
  ],
  "variant": "persize-forward-supervised",
  "variant_description": "Per-size MoveNet guide for the forward primitive-move A*, trained on exact optimal move labels. Near-optimal on realized moves when it solves, but pays a large search cost; the moves-quality baseline of the study.",
- "variant_name": "persize-forward-supervised"
+ "variant_name": "persize-forward-supervised",
+ "variant_role": "baseline",
+ "variant_status": "done"
 }

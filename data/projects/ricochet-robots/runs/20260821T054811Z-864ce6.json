@@ -124,5 +124,6 @@
  "variant": "varlab-strict-moves-value",
  "variant_conclusion": "WIN on 2-seed evidence, the lab's best single change: frontier 168/169 vs controls 160/155 (Fisher p=0.0015), best regret of the program (1.98), unseen 177/200 best absolute single-change row. Adopted.",
  "variant_description": "Variants lab v09: train the value net on realized STRICT move counts - the benchmark metric itself - instead of abstract plan cost; no arm in the project had ever trained on the metric.",
- "variant_name": "varlab-strict-moves-value"
+ "variant_name": "varlab-strict-moves-value",
+ "variant_status": "adopted"
 }

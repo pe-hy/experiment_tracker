@@ -97,5 +97,6 @@
  ],
  "variant": "forward-rescue-tune",
  "variant_description": "A fair second chance for the forward MoveNet at its weakest-looking rung (16x16, 8 robots): 3 seeds x 3 learning rates with the control's recipe otherwise verbatim, one arm promoted by validation top-1 alone (test never read) - answers the 'weak opponent' objection with measurement.",
- "variant_name": "forward-rescue-tune"
+ "variant_name": "forward-rescue-tune",
+ "variant_status": "done"
 }

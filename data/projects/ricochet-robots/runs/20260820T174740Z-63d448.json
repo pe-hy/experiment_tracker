@@ -107,5 +107,6 @@
  "variant": "forward-move-selfplay-24x24",
  "variant_conclusion": "Two iterations bought half the remaining optimality (regret 0.068->0.041, 94.1->96.3% optimal, the project's only significant paired moves gain) but solve rate stays at supervised parity.",
  "variant_description": "ExIt-style self-play for the forward MoveNet at 24x24: PUCT over primitive slides, replayed-path labels (value = remaining certified path length), exact-corpus anchor against drift - attacks optimality where the supervised planner is already near its ceiling.",
- "variant_name": "forward-move-selfplay-24x24"
+ "variant_name": "forward-move-selfplay-24x24",
+ "variant_status": "done"
 }

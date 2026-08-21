@@ -91,5 +91,7 @@
  ],
  "variant": "persize-backward-supervised",
  "variant_description": "Per-size PolicyTF policy + LoopedValueNet value trained on exact solver labels: the backward subgoal planner at one fixed board size. This is the frozen 'backward supervised' baseline every self-play arm is gated against.",
- "variant_name": "persize-backward-supervised"
+ "variant_name": "persize-backward-supervised",
+ "variant_role": "baseline",
+ "variant_status": "done"
 }
